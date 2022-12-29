@@ -195,3 +195,12 @@ IPFS_STORAGE_API_URL = 'http://localhost:5001/api/v0/'
 IPFS_STORAGE_GATEWAY_URL = 'http://localhost:8080/ipfs/'
 # for production
 # IPFS_STORAGE_GATEWAY_URL = 'https://ipfs.io/ipfs/'
+
+
+# Celery configurations
+
+
+
+# Redis configuration
+
+REDIS_BROKER_CHANEL = 'redis://localhost:6379'
