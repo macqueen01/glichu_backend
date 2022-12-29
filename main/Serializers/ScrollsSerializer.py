@@ -7,6 +7,7 @@ class MediaSerializer(serializers.ModelSerializer):
     url_postprocess = serializers.TextField()
     uploader = UserSerializer()
     created_at = serializers.DateTimeField()
+    title = serializers.CharField(max_length=400)
 
     class Meta:
         model = VideoMedia
@@ -15,7 +16,8 @@ class MediaSerializer(serializers.ModelSerializer):
             'url_preprocess',
             'url_postprocess',
             'uploader',
-            'created_at'
+            'created_at',
+            'title'
         )
 
 class TagSerializer(serializers.ModelSerializer):

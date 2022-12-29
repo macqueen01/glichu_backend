@@ -1,6 +1,11 @@
+import os
+
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 from .UserModel import User
+
+from main import tasks
 #from mockingJae_back.settings import
 
 # Model Managers
@@ -54,19 +59,46 @@ class TagManager(models.Manager):
         # Needs profanity filter (both english and korean)
         return True
 
-"""
 class VideoMediaManager(models.Manager):
 
-    def get_video_
-"""
+    def get_video_from_id(self, media_id):
+        if (media := self.filter(id__exact = media_id)).exists():
+            return media.get()
+        return False
+
+    def convert(self, media_id):
+        date = timezone.now().date().__str__().replace('-', '')
+        if (original_video := self.get_video_from_id(media_id)):
+            converted_video_path = os.path.join(settings.MEDIA_ROOT, f'streams/video/{date}/{original_video.title}.mp4')
+            original_video_path = original_video.url_preprocess
+            encoding_task = tasks.convert.delay([original_video_path, converted_video_path])
+            original_video.url_postprocess = converted_video_path
+            original_video.save()
+            return encoding_task.id 
+        return False
+
+    def is_media_converted(self, media_id):
+        pass
+        
+
+
+class ScrollsManager(models.Manager):
+
+    def create(self):
+        pass
+
 
 # Models
+
 
 class VideoMedia(models.Model):
     url_preprocess = models.FileField(upload_to='archive/video/%Y%m%d', default="")
     url_postprocess = models.TextField(default="")
     uploader = models.ForeignKey(to=User, on_delete=models.SET_NULL, default=None, related_name="uploaded_video", null=True)
     created_at = models.DateTimeField()
+    title = models.CharField(max_length=400)
+
+    objects = VideoMediaManager
 
     def __str__(self):
         return self.id
