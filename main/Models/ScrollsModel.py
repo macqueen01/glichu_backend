@@ -67,25 +67,77 @@ class VideoMediaManager(models.Manager):
         return False
 
     def convert(self, media_id):
+
         date = timezone.now().date().__str__().replace('-', '')
+
+        if self.is_media_converted(media_id):
+            return False
+
         if (original_video := self.get_video_from_id(media_id)):
             converted_video_path = os.path.join(settings.MEDIA_ROOT, f'streams/video/{date}/{original_video.title}.mp4')
             original_video_path = original_video.url_preprocess
-            encoding_task = tasks.convert.delay([original_video_path, converted_video_path])
-            original_video.url_postprocess = converted_video_path
-            original_video.save()
+            encoding_task = tasks.convert.delay([original_video_path, converted_video_path, media_id])
             return encoding_task.id 
         return False
 
     def is_media_converted(self, media_id):
+        if (media := self.get_video_from_id(media_id) and media.url_postprocess):
+            return True
+        return False
+
+    def mp4_to_scrolls(self, media_id, scrolls_id, fps=60, quality=5):
+
+        date = timezone.now().date().__str__().replace('-', '')
+        
+        if not self.is_media_converted(media_id):
+            return False
+        
+        if not Scrolls.objects.get_scrolls_from_id(scrolls_id):
+            return False
+
+        media = self.get_video_from_id(media_id)
+
+        media_path = media.url_postprocess
+        scrolls_path = os.path.join(settings.MEDIA_ROOT, f'scrolls/{date}/{media.title}')
+
+        tasks.scrollify(media_path, scrolls_path, fps, quality, scrolls_id)
         pass
         
 
 
 class ScrollsManager(models.Manager):
 
-    def create(self):
+    def create(self, **kwargs):
+        user = User.objects.get_user_from_id(kwargs['user_id'])
+        media = VideoMedia.objects.get_video_from_id(kwargs['media_id'])
+
+        new_scrolls = self.model(
+            title = kwargs['title'],
+            created_by = user,
+            created_at = timezone.now(),
+            original = media,
+            height = kwargs['height']
+        ).save()
+
         pass
+    
+    def get_scrolls_from_id(self, scrolls_id):
+        if (scrolls := self.filter(id__exact = scrolls_id)).exists():
+            return scrolls.get()
+        return False
+
+    def create_cell(self, scrolls_id, hash):
+        
+        if scrolls := self.get_scrolls_from_id(scrolls_id):
+            new_cell = Cell(
+                url = f'https://ipfs.io/ipfs/{hash}'
+            ).save()
+
+            new_cell.scrolls = scrolls
+            new_cell.save()
+            return new_cell
+
+        return False
 
 
 # Models
@@ -129,6 +181,7 @@ class Scrolls(models.Model):
     height = models.IntegerField(default=0)
     length = models.IntegerField(default=0)
 
+    objects = ScrollsManager
 
     def __str__(self):
         return self.title

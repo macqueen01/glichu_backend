@@ -1,11 +1,13 @@
 from celery import shared_task, result
+import ipfshttpclient
+
 import subprocess
 import os
 
-from main.models import User, Scrolls, Cell
+from django.apps import AppConfig
 
 @shared_task
-def convert(input, output):
+def convert(input, output, media_id=None):
 
     output_dir = os.path.dirname(output)
 
@@ -42,6 +44,12 @@ def convert(input, output):
         stderr=subprocess.PIPE
     )
     (out, err) = process.communicate('')
+
+    if media_id:
+        # Saves the converted media path if media id is given. 
+        media = AppConfig.get_model('VideoMedia', require_ready=True).objects.get(id__exact = media_id)
+        media.url_postprocess = output
+        media.save()
 
     return out.__str__()
 
@@ -92,8 +100,37 @@ def scrollify(input, output_dir, fps, quality = 5, scrolls_id = None):
     )
     (out, err) = process.communicate('')
 
+    if scrolls_id:
+        ipfs_upload_task = upload_to_ipfs.delay([output_dir, scrolls_id])
+
     return out.__str__()
+
+@shared_task
+def upload_to_ipfs(dirname, scrolls_id):
+
+    scrolls_model = AppConfig.get_model('Scrolls', require_ready=True)
+
+    if not os.path.exists(dirname):
+        return False
+
+    if scrolls := scrolls_model.get_scrolls_from_id(scrolls_id):
+        client = ipfshttpclient.connect()
+        hashes = []
+
+        for file in os.listdir(dirname):
+            file_path = os.path.join(dirname, file)
+            res = client.add(file_path)
+            hashes.append(res)
+            scrolls_model.create_cell(scrolls_id, res['Hash'])
     
+        length = len(hashes)
+        scrolls.length = length
+        scrolls.save()
+        return scrolls
+    
+    return False
+
+
 def task_status(task_id):
 
     # PENDING --> 4

@@ -11,7 +11,6 @@ app = Celery(
     )
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
-app.conf.update(result_expires=3600)
 app.autodiscover_tasks()
 
 if __name__ == '__main__':

@@ -30,6 +30,11 @@ class UserManager(BaseUserManager):
         user.is_active = 1
         user.save(using = self._db)
         return user
+    
+    def get_user_from_id(self, user_id):
+        if (user := self.filter(id__exact = user_id)).exists():
+            return user.get()
+        return False
         
     
 class User(AbstractBaseUser):
