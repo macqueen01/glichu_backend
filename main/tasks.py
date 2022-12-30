@@ -55,7 +55,7 @@ def convert(input, output, media_id=None):
     return out.__str__()
 
 @shared_task
-def scrollify(input, output_dir, fps, quality = 5, scrolls_id = None):
+def scrollify(input, output_dir, fps, quality = 5):
     """
     Scrollify takes a converted mp4 video as an input and 
     creates a sequence of images taken inbetween the given framerate.
@@ -65,19 +65,17 @@ def scrollify(input, output_dir, fps, quality = 5, scrolls_id = None):
     Scrollify should be called AFTER the creation of the scrolls object of given id.
     """
 
-    output_dir = os.path.dirname(output_dir)
-
     if not os.path.exists(input):
         return False
     
     if os.path.exists(output_dir):
         return False
     
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    
     # quality should be in range of 1 ~ 31, from 1 being best to 31 being worst
-    assert((0 < quality) and (quality <= 31), True)
+    assert(0 < quality and quality <= 31, True)
+    os.makedirs(output_dir)
+
+    basename = os.path.basename(output_dir)
 
 
     # Now start producing thumbnails
@@ -101,22 +99,17 @@ def scrollify(input, output_dir, fps, quality = 5, scrolls_id = None):
     )
     (out, err) = process.communicate('')
 
-    if scrolls_id:
-        ipfs_upload_task = upload_to_ipfs.delay(dirname = output_dir, scrolls_id = scrolls_id)
-
-    return out.__str__()
+    return output_dir, err
 
 @shared_task
 def upload_to_ipfs(dirname, scrolls_id):
 
     scrolls_model = apps.get_model(app_label='main', model_name='Scrolls', require_ready=True)
 
-    print('enter')
-
     if not os.path.exists(dirname):
         return False
 
-    if scrolls := scrolls_model.get_scrolls_from_id(scrolls_id):
+    if scrolls := scrolls_model.objects.get_scrolls_from_id(scrolls_id):
         client = ipfshttpclient.connect()
         hashes = []
 
@@ -124,10 +117,11 @@ def upload_to_ipfs(dirname, scrolls_id):
             file_path = os.path.join(dirname, file)
             res = client.add(file_path)
             hashes.append(res)
-            scrolls_model.create_cell(scrolls_id, res['Hash'])
+            scrolls_model.objects.create_cell(scrolls_id, res['Hash'])
     
         length = len(hashes)
         scrolls.length = length
+        scrolls.uploaded = True
         scrolls.save()
         return scrolls
     
@@ -158,3 +152,12 @@ def task_status(task_id):
     
     elif task.state == 'SUCCESS':
         return 1
+
+    return 2
+
+def get_result_from_task_id(task_id):
+
+    if task_status(task_id) != 1:
+        return False
+    
+    return result.AsyncResult(task_id).result

@@ -55,6 +55,7 @@ class ScrollsSerializer(serializers.ModelSerializer):
     height = serializers.IntegerField()
     length = serializers.IntegerField()
     cells = CellSerializer()
+    uploaded = serializers.IntegerField()
 
     class Meta:
         model = Scrolls

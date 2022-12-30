@@ -87,10 +87,6 @@ class VideoMediaManager(models.Manager):
         return False
 
     def mp4_to_scrolls(self, media_id, scrolls_id, fps=60, quality=5):
-        """
-        지금 scrollify ipfs upload 제외하고 정상작동함
-        12/30 2.20 pm
-        """
 
         date = timezone.now().date().__str__().replace('-', '')
         
@@ -103,9 +99,9 @@ class VideoMediaManager(models.Manager):
         media = self.get_video_from_id(media_id)
 
         media_path = media.url_postprocess
-        scrolls_path = os.path.join(settings.MEDIA_ROOT, f'scrolls/{date}/{media.title}')
+        scrolls_path = os.path.join(settings.MEDIA_ROOT, f'scrolls/{date}/{media.title}/')
 
-        if scrollify_task := tasks.scrollify.delay(media_path, scrolls_path, fps, quality, scrolls_id):
+        if scrollify_task := tasks.scrollify.delay(input = media_path, output_dir = scrolls_path, fps = fps, quality = quality):
             return scrollify_task.id
         return False
 
@@ -119,9 +115,9 @@ class ScrollsManager(models.Manager):
 
 
     Workflow Overview:
-    VID UPLOAD --> CONVERT --> CREATE SCROLLS -
-                                               |
-    UPLOAD_TO_IPFS    <--     MP4_TO_SCROLLS <-
+    VID UPLOAD --> CONVERT --> CREATE SCROLLS --
+                                                |
+    UPLOAD_TO_IPFS    <--     MP4_TO_SCROLLS <--
     """
 
     def create(self, **kwargs):
@@ -151,14 +147,47 @@ class ScrollsManager(models.Manager):
         if scrolls := self.get_scrolls_from_id(scrolls_id):
             new_cell = Cell(
                 url = f'https://ipfs.io/ipfs/{hash}'
-            ).save()
+            )
 
             new_cell.scrolls = scrolls
             new_cell.save()
             return new_cell
 
         return False
+    
+    def upload(self, scrolls_id, scrolls_dirname, wait=True):
+        """
+        Uploads the scroll cells to ipfs and returns 
+        the uploaded scrolls object if wait == True,
+        and returns the task_id if wait == False.
+        """
 
+        if not self.get_scrolls_from_id(scrolls_id):
+            return False
+        
+        if not wait:
+            upload_task = tasks.upload_to_ipfs(dirname=scrolls_dirname, scrolls_id=scrolls_id)
+            return upload_task.id
+        
+        if upload_task_result := tasks.upload_to_ipfs(dirname=scrolls_dirname, scrolls_id=scrolls_id):
+            # waits until the end of uploading
+            return upload_task_result
+        
+        return False
+
+    def is_scrolls_uploaded(self, scrolls_id):
+
+        scrolls_object = self.get_scrolls_from_id(scrolls_id)
+        
+        if not scrolls_object:
+            return False
+        
+        if not scrolls_object.uploaded:
+            return False
+        
+        return True
+             
+    
 
 # Models
 
@@ -200,6 +229,7 @@ class Scrolls(models.Model):
     liked_by = models.ManyToManyField(to=User, related_name="likes")
     height = models.IntegerField(default=0)
     length = models.IntegerField(default=0)
+    uploaded = models.IntegerField(default=0)
 
     objects = ScrollsManager()
 
