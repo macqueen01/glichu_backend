@@ -70,22 +70,27 @@ class VideoMediaManager(models.Manager):
 
         date = timezone.now().date().__str__().replace('-', '')
 
-        if self.is_media_converted(media_id):
-            return False
+        #if self.is_media_converted(media_id):
+        #    return False
 
         if (original_video := self.get_video_from_id(media_id)):
             converted_video_path = os.path.join(settings.MEDIA_ROOT, f'streams/video/{date}/{original_video.title}.mp4')
             original_video_path = original_video.url_preprocess
-            encoding_task = tasks.convert.delay([original_video_path, converted_video_path, media_id])
+            encoding_task = tasks.convert.delay(input = original_video_path, output = converted_video_path, media_id = media_id)
             return encoding_task.id 
         return False
 
     def is_media_converted(self, media_id):
-        if (media := self.get_video_from_id(media_id) and media.url_postprocess):
+        media = self.get_video_from_id(media_id)
+        if (media and media.url_postprocess):
             return True
         return False
 
     def mp4_to_scrolls(self, media_id, scrolls_id, fps=60, quality=5):
+        """
+        지금 scrollify ipfs upload 제외하고 정상작동함
+        12/30 2.20 pm
+        """
 
         date = timezone.now().date().__str__().replace('-', '')
         
@@ -100,16 +105,31 @@ class VideoMediaManager(models.Manager):
         media_path = media.url_postprocess
         scrolls_path = os.path.join(settings.MEDIA_ROOT, f'scrolls/{date}/{media.title}')
 
-        tasks.scrollify(media_path, scrolls_path, fps, quality, scrolls_id)
-        pass
-        
+        if scrollify_task := tasks.scrollify.delay(media_path, scrolls_path, fps, quality, scrolls_id):
+            return scrollify_task.id
+        return False
 
 
 class ScrollsManager(models.Manager):
+    """
+    Notion for the scrolls object:
+    all methods implementing ScrollsManager are not meant to intervene
+    video encoding and splicing. Those task-heavy actions are carried by
+    VideoMediaManager.
+
+
+    Workflow Overview:
+    VID UPLOAD --> CONVERT --> CREATE SCROLLS -
+                                               |
+    UPLOAD_TO_IPFS    <--     MP4_TO_SCROLLS <-
+    """
 
     def create(self, **kwargs):
         user = User.objects.get_user_from_id(kwargs['user_id'])
         media = VideoMedia.objects.get_video_from_id(kwargs['media_id'])
+
+        if not media:
+            return False
 
         new_scrolls = self.model(
             title = kwargs['title'],
@@ -119,7 +139,7 @@ class ScrollsManager(models.Manager):
             height = kwargs['height']
         ).save()
 
-        pass
+        return new_scrolls
     
     def get_scrolls_from_id(self, scrolls_id):
         if (scrolls := self.filter(id__exact = scrolls_id)).exists():
@@ -148,12 +168,12 @@ class VideoMedia(models.Model):
     url_postprocess = models.TextField(default="")
     uploader = models.ForeignKey(to=User, on_delete=models.SET_NULL, default=None, related_name="uploaded_video", null=True)
     created_at = models.DateTimeField()
-    title = models.CharField(max_length=400)
+    title = models.CharField(max_length=400, default="Untitled")
 
-    objects = VideoMediaManager
+    objects = VideoMediaManager()
 
     def __str__(self):
-        return self.id
+        return f'{self.id}'
 
 
 class Tag(models.Model):
@@ -181,7 +201,7 @@ class Scrolls(models.Model):
     height = models.IntegerField(default=0)
     length = models.IntegerField(default=0)
 
-    objects = ScrollsManager
+    objects = ScrollsManager()
 
     def __str__(self):
         return self.title

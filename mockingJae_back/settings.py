@@ -189,10 +189,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # IPFS Storage Configuration
 # Only Stores scroll cells in ipfs
 
-IPFS_STORAGE_API_URL = 'http://localhost:5001/api/v0/'
+#IPFS_STORAGE_API_URL = 'http://localhost:5001/api/v0/'
 
 # for daemon
-IPFS_STORAGE_GATEWAY_URL = 'http://localhost:8080/ipfs/'
+#IPFS_STORAGE_GATEWAY_URL = 'http://localhost:8080/ipfs/'
 # for production
 # IPFS_STORAGE_GATEWAY_URL = 'https://ipfs.io/ipfs/'
 

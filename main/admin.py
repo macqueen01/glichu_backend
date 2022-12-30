@@ -4,3 +4,6 @@ from .models import *
 
 admin.site.register(User)
 admin.site.register(Scrolls)
+admin.site.register(VideoMedia)
+admin.site.register(Cell)
+admin.site.register(Tag)

@@ -4,7 +4,7 @@ import ipfshttpclient
 import subprocess
 import os
 
-from django.apps import AppConfig
+from django.apps import apps
 
 @shared_task
 def convert(input, output, media_id=None):
@@ -47,9 +47,10 @@ def convert(input, output, media_id=None):
 
     if media_id:
         # Saves the converted media path if media id is given. 
-        media = AppConfig.get_model('VideoMedia', require_ready=True).objects.get(id__exact = media_id)
-        media.url_postprocess = output
-        media.save()
+        media_model = apps.get_model(app_label='main', model_name='VideoMedia', require_ready=True)
+        media_object = media_model.objects.get(id__exact = media_id)
+        media_object.url_postprocess = output
+        media_object.save()
 
     return out.__str__()
 
@@ -101,14 +102,16 @@ def scrollify(input, output_dir, fps, quality = 5, scrolls_id = None):
     (out, err) = process.communicate('')
 
     if scrolls_id:
-        ipfs_upload_task = upload_to_ipfs.delay([output_dir, scrolls_id])
+        ipfs_upload_task = upload_to_ipfs.delay(dirname = output_dir, scrolls_id = scrolls_id)
 
     return out.__str__()
 
 @shared_task
 def upload_to_ipfs(dirname, scrolls_id):
 
-    scrolls_model = AppConfig.get_model('Scrolls', require_ready=True)
+    scrolls_model = apps.get_model(app_label='main', model_name='Scrolls', require_ready=True)
+
+    print('enter')
 
     if not os.path.exists(dirname):
         return False
