@@ -1,3 +1,7 @@
-from django.test import TestCase
+from rest_framework.test import APIClient
 
-# Create your tests here.
+client = APIClient()
+res = client.get('http://localhost:8000/scrolls/browse?id=1')
+print(res.json())
+
+

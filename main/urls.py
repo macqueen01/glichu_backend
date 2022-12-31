@@ -13,11 +13,9 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
 from django.urls import path, include
+from main.views import scrolls_browse
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('scrolls/', include('main.urls'))
-    #path('auth/', include('rest_framework_social_oauth2.urls')),
+    path('browse/', scrolls_browse),
 ]

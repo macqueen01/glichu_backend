@@ -3,8 +3,10 @@ import ipfshttpclient
 
 import subprocess
 import os
+import shutil
 
 from django.apps import apps
+
 
 @shared_task
 def convert(input, output, media_id=None):
@@ -13,10 +15,10 @@ def convert(input, output, media_id=None):
 
     if not os.path.exists(input):
         return False
-    
+
     if os.path.exists(output):
         return False
-    
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -45,17 +47,23 @@ def convert(input, output, media_id=None):
     )
     (out, err) = process.communicate('')
 
+    if process.returncode != 0:
+        shutil.rmtree(output)
+        return False
+
     if media_id:
-        # Saves the converted media path if media id is given. 
-        media_model = apps.get_model(app_label='main', model_name='VideoMedia', require_ready=True)
-        media_object = media_model.objects.get(id__exact = media_id)
+        # Saves the converted media path if media id is given.
+        media_model = apps.get_model(
+            app_label='main', model_name='VideoMedia', require_ready=True)
+        media_object = media_model.objects.get(id__exact=media_id)
         media_object.url_postprocess = output
         media_object.save()
 
-    return out.__str__()
+    return media_id
+
 
 @shared_task
-def scrollify(input, output_dir, fps, quality = 5):
+def scrollify(input, output_dir, fps, quality=5):
     """
     Scrollify takes a converted mp4 video as an input and 
     creates a sequence of images taken inbetween the given framerate.
@@ -67,16 +75,13 @@ def scrollify(input, output_dir, fps, quality = 5):
 
     if not os.path.exists(input):
         return False
-    
+
     if os.path.exists(output_dir):
         return False
-    
+
     # quality should be in range of 1 ~ 31, from 1 being best to 31 being worst
-    assert(0 < quality and quality <= 31, True)
+    assert (0 < quality and quality <= 31, True)
     os.makedirs(output_dir)
-
-    basename = os.path.basename(output_dir)
-
 
     # Now start producing thumbnails
 
@@ -101,30 +106,41 @@ def scrollify(input, output_dir, fps, quality = 5):
 
     return output_dir, err
 
+
 @shared_task
 def upload_to_ipfs(dirname, scrolls_id):
 
-    scrolls_model = apps.get_model(app_label='main', model_name='Scrolls', require_ready=True)
+    scrolls_model = apps.get_model(
+        app_label='main', model_name='Scrolls', require_ready=True)
 
     if not os.path.exists(dirname):
         return False
+
+    scrolls_model.objects.initialize(scrolls_id)
 
     if scrolls := scrolls_model.objects.get_scrolls_from_id(scrolls_id):
         client = ipfshttpclient.connect()
         hashes = []
 
         for file in os.listdir(dirname):
+            basename = os.path.basename(file)
+            index = int(os.path.splitext(basename)[0]) - 1
+
             file_path = os.path.join(dirname, file)
             res = client.add(file_path)
             hashes.append(res)
-            scrolls_model.objects.create_cell(scrolls_id, res['Hash'])
-    
+
+            cell = scrolls_model.objects.create_cell(
+                scrolls_id, res['Hash'], index)
+            cell.save()
+
         length = len(hashes)
         scrolls.length = length
         scrolls.uploaded = True
         scrolls.save()
+
         return scrolls
-    
+
     return False
 
 
@@ -135,10 +151,10 @@ def task_status(task_id):
     # FAILURE --> 0
     # SUCCESS --> 1
     # TASK NOT FOUND --> 2
-    
+
     if not task_id:
         return 2
-    
+
     task = result.AsyncResult(task_id)
 
     if task.state == 'FAILURE':
@@ -146,18 +162,19 @@ def task_status(task_id):
 
     elif task.state == 'RUNNING':
         return 3
-    
+
     elif task.state == 'PENDING':
         return 4
-    
+
     elif task.state == 'SUCCESS':
         return 1
 
     return 2
 
+
 def get_result_from_task_id(task_id):
 
     if task_status(task_id) != 1:
         return False
-    
+
     return result.AsyncResult(task_id).result

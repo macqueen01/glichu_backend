@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from main.models import *
-from UserSerializer import UserSerializer
+from .UserSerializer import UserSerializer
 
 class MediaSerializer(serializers.ModelSerializer):
     url_preprocess = serializers.FileField()
-    url_postprocess = serializers.TextField()
+    url_postprocess = serializers.CharField()
     uploader = UserSerializer()
     created_at = serializers.DateTimeField()
     title = serializers.CharField(max_length=400)
@@ -36,26 +36,30 @@ class TagSerializer(serializers.ModelSerializer):
 
 class CellSerializer(serializers.ModelSerializer):
     url = serializers.CharField(max_length=130)
+    index = serializers.IntegerField()
     
     class Meta:
         model = Cell
-        field = (
-            'id',
+        fields = (
+            'index',
             'url'
         )
 
 class ScrollsSerializer(serializers.ModelSerializer):
     title = serializers.CharField(max_length=100)
-    mention = UserSerializer()
+    mention = UserSerializer(many=True)
     created_by = UserSerializer()
     created_at = serializers.DateTimeField()
-    original = MediaSerializer()
-    tags = TagSerializer()
-    liked_by = UserSerializer()
+    tags = TagSerializer(many=True)
+    liked_by = UserSerializer(many = True)
     height = serializers.IntegerField()
     length = serializers.IntegerField()
-    cells = CellSerializer()
+    cells = serializers.SerializerMethodField()
     uploaded = serializers.IntegerField()
+
+    def get_cells(self, instance):
+        queryset = instance.cells.order_by('index')
+        return CellSerializer(queryset, many=True).data
 
     class Meta:
         model = Scrolls
@@ -64,13 +68,17 @@ class ScrollsSerializer(serializers.ModelSerializer):
             'title',
             'mention',
             'created_by',
-            'original',
+            'created_at',
             'tags',
             'liked_by',
             'height',
             'length',
-            'cells'
+            'cells',
+            'uploaded'
         )
+
+    
+
     
 
 
