@@ -1,3 +1,6 @@
-from django.db import models
+from .Models.UserModel import User
+from .Models.ScrollsModel import *
 
-# Create your models here.
+
+
+
