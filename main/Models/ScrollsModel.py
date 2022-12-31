@@ -114,15 +114,16 @@ class VideoMediaManager(models.Manager):
 
         date = timezone.now().date().__str__().replace('-', '')
 
-        if self.is_media_converted(media_id):
-            return False
+        #if self.is_media_converted(media_id):
+        #    return False
 
         if (original_video := self.get_video_from_id(media_id)):
             converted_video_path = os.path.join(
                 settings.MEDIA_ROOT, f'streams/video/{date}/{original_video.title}.mp4')
-            original_video_path = original_video.url_preprocess
+            original_video_path = os.path.join(settings.MEDIA_ROOT, original_video.url_preprocess.__str__())
             encoding_task = tasks.convert.delay(
                 input=original_video_path, output=converted_video_path, media_id=media_id)
+            print(encoding_task)
             return encoding_task.id
         return False
 
@@ -180,7 +181,8 @@ class ScrollsManager(models.Manager):
             created_at=timezone.now(),
             original=media,
             height=kwargs['height']
-        ).save()
+        )
+        new_scrolls.save()
 
         return new_scrolls
 
@@ -231,7 +233,7 @@ class ScrollsManager(models.Manager):
             return False
 
         if not wait:
-            upload_task = tasks.upload_to_ipfs(
+            upload_task = tasks.upload_to_ipfs.delay(
                 dirname=scrolls_dirname, scrolls_id=scrolls_id)
             return upload_task.id
 

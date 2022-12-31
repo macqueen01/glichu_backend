@@ -9,7 +9,7 @@ from django.apps import apps
 
 
 @shared_task
-def convert(input, output, media_id=None):
+def convert(input, output, media_id):
 
     output_dir = os.path.dirname(output)
 
@@ -59,7 +59,7 @@ def convert(input, output, media_id=None):
         media_object.url_postprocess = output
         media_object.save()
 
-    return media_id
+    return media_id.__str__()
 
 
 @shared_task
@@ -104,7 +104,11 @@ def scrollify(input, output_dir, fps, quality=5):
     )
     (out, err) = process.communicate('')
 
-    return output_dir, err
+    if process.returncode != 0:
+        shutil.rmtree(output_dir)
+        return False
+
+    return output_dir
 
 
 @shared_task
@@ -139,7 +143,7 @@ def upload_to_ipfs(dirname, scrolls_id):
         scrolls.uploaded = True
         scrolls.save()
 
-        return scrolls
+        return scrolls.id
 
     return False
 
