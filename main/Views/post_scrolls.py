@@ -93,8 +93,28 @@ def scrollify_video(request):
 
 
 def upload_scrolls(request):
+    """
+    """
     try:
-        pass
+        task_id = request.data['task_id']
+        scrolls_id = request.data['scrolls_id']
+
+        if tasks.task_status(task_id) in [3,4]:
+            return Response({'message': 'task is being run or waiting inside the queue'},
+                status=status.HTTP_102_PROCESSING)
+        
+        scrolls_dirname = tasks.get_result_from_task_id(task_id)
+        
+        if not scrolls_dirname:
+            return Response({'message': 'scrollify process was not successful, try uploading again'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        if (upload_task_id := Scrolls.objects.upload(scrolls_id=scrolls_id, scrolls_dirname=scrolls_dirname, wait=False)):
+            return upload_task_id
+        
+        return Response({'message': f'scrolls with id {scrolls_id} not found, try uploading again'},    
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except:
-        pass
+        return Response({'message': 'argument missing'}, 
+            status=status.HTTP_400_BAD_REQUEST)
 

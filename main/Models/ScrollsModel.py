@@ -123,7 +123,6 @@ class VideoMediaManager(models.Manager):
             original_video_path = os.path.join(settings.MEDIA_ROOT, original_video.url_preprocess.__str__())
             encoding_task = tasks.convert.delay(
                 input=original_video_path, output=converted_video_path, media_id=media_id)
-            print(encoding_task)
             return encoding_task.id
         return False
 
@@ -274,7 +273,110 @@ class ScrollsManager(models.Manager):
         return True
 
 
+    """
+    
+    # scrolls recommendation from interest
+    def get_recommended_scrolls(self, user_id):
+        user = User.objects.get_user_from_id(user_id)
+        if not user:
+            return False
+
+        if not user.interests.exists():
+            return False
+
+        interests = user.interests.all()
+        scrolls = Scrolls.objects.all()
+
+        for interest in interests:
+            scrolls = scrolls.filter(tags__hashtag__icontains=interest.hashtag)
+
+        return scrolls
+
+# History model manager class.
+# This model manager updates the interest of the user by calculating 
+# user-watched scrolls hashtags.
+class HistoryManager(models.Manager):
+
+    def create(self, **kwargs):
+        user = User.objects.get_user_from_id(kwargs['user_id'])
+        scrolls = Scrolls.objects.get_scrolls_from_id(kwargs['scrolls_id'])
+
+        if not user or not scrolls:
+            return False
+
+        new_history = self.model(
+            user=user,
+            scrolls=scrolls,
+            created_at=timezone.now()
+        )
+
+        new_history.save()
+        return new_history
+
+    def delete(self, history_id):
+        if not self.get_history_from_id(history_id):
+            return False
+
+        self.filter(id__exact=history_id).delete()
+        return True
+
+    def get_history_from_id(self, history_id):
+        if (history := self.filter(id__exact=history_id)).exists():
+            return history.get()
+        return False
+
+    def get_history_from_user(self, user_id):
+        if not User.objects.get_user_from_id(user_id):
+            return False
+
+        if (histories := self.filter(user__id__exact=user_id)).exists():
+            return histories
+
+        return False
+
+    def get_history_from_scrolls(self, scrolls_id):
+        if not Scrolls.objects.get_scrolls_from_id(scrolls_id):
+            return False
+
+        if (histories := self.filter(scrolls__id__exact=scrolls_id)).exists():
+            return histories
+
+        return False
+
+    def get_history_from_user_and_scrolls(self, user_id, scrolls_id):
+        if not User.objects.get_user_from_id(user_id):
+            return False
+
+        if not Scrolls.objects.get_scrolls_from_id(scrolls_id):
+            return False
+
+        if (histories := self.filter(user__id__exact=user_id, scrolls__id__exact=scrolls_id)).exists():
+            return histories.get()
+
+        return False
+
+    def update_interest(self, user_id):
+        if not User.objects.get_user_from_id(user_id):
+            return False
+
+        if not (histories := self.get_history_from_user(user_id)):
+            return False
+
+        user = User.objects.get_user_from_id(user_id)
+        user.interests.remove(*user.interests.all())
+
+        for history in histories:
+            for tag in history.scrolls.tags.all():
+                if not user.interests.filter(hashtag__exact=tag.hashtag).exists():
+                    user.interests.add(tag)
+
+        return True
+
+"""
+
+
 # Models
+
 
 
 class VideoMedia(models.Model):
@@ -334,3 +436,27 @@ class Cell(models.Model):
 
     def __str__(self):
         return self.index.__str__()
+
+
+
+"""
+class History(models.Model):
+
+    #History of the user scrolls watching.
+    #Used by algorithm to recommend scrolls.
+
+
+    user = models.ForeignKey(
+        to=User, on_delete=models.CASCADE, related_name="history")
+    scrolls = models.ForeignKey(
+        to=Scrolls, on_delete=models.CASCADE, related_name="history")
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f'{self.user.username} - {self.scrolls.title}'
+
+    class Meta:
+        unique_together = ('user', 'scrolls')
+"""
+
+
