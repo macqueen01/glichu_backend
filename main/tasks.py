@@ -117,26 +117,45 @@ def upload_to_ipfs(dirname, scrolls_id):
     scrolls_model = apps.get_model(
         app_label='main', model_name='Scrolls', require_ready=True)
 
+
     if not os.path.exists(dirname):
         return False
 
     scrolls_model.objects.initialize(scrolls_id)
 
     if scrolls := scrolls_model.objects.get_scrolls_from_id(scrolls_id):
-        client = ipfshttpclient.connect()
-        hashes = []
 
-        for file in os.listdir(dirname):
-            basename = os.path.basename(file)
-            index = int(os.path.splitext(basename)[0]) - 1
+        try: 
+            client = ipfshttpclient.connect()
+            hashes = []
 
-            file_path = os.path.join(dirname, file)
-            res = client.add(file_path)
-            hashes.append(res)
+            for file in os.listdir(dirname):
+                basename = os.path.basename(file)
+                index = int(os.path.splitext(basename)[0]) - 1
 
-            cell = scrolls_model.objects.create_cell(
-                scrolls_id, res['Hash'], index)
-            cell.save()
+                file_path = os.path.join(dirname, file)
+                res = client.add(file_path)
+                hashes.append(res)
+
+                cell = scrolls_model.objects.create_cell(
+                    scrolls_id, res['Hash'], index)
+                cell.save()
+            
+        except: 
+            hashes = []
+
+            for file in os.listdir(dirname):
+                basename = os.path.basename(file)
+                index = int(os.path.splitext(basename)[0]) - 1
+
+                file_path = os.path.join(dirname, file)
+                hash = ipfs_direct_call(file_path)
+                hashes.append(hash)
+
+                cell = scrolls_model.objects.create_cell(
+                    scrolls_id, hash, index)
+                cell.save()
+            
 
         length = len(hashes)
         scrolls.length = length
@@ -146,6 +165,27 @@ def upload_to_ipfs(dirname, scrolls_id):
         return scrolls.id
 
     return False
+
+def ipfs_direct_call(directory):
+    args = [
+        'ipfs',
+        'add',
+        directory
+    ]
+
+    process = subprocess.Popen(
+        args,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    (out, err) = process.communicate('')
+
+    if process.returncode != 0:
+        return False
+    
+    return out.__str__().split(' ')[1]
 
 
 def task_status(task_id):
@@ -182,3 +222,6 @@ def get_result_from_task_id(task_id):
         return False
 
     return result.AsyncResult(task_id).result
+
+
+

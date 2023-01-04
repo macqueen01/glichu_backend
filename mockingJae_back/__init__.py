@@ -3,6 +3,10 @@ from .celery import app as celery_app
 # assure ipfs == v0.6.0 and ipfshttpslient == v0.6.0
 import ipfshttpclient
 
-client = ipfshttpclient.connect()
+
+try:
+    client = ipfshttpclient.connect()
+except:
+    print('running ipfs add directly')
 
 __all__ = ('celery_app',)
