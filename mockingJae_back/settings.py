@@ -10,7 +10,11 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 from rest_framework.settings import api_settings
+from storages.backends.s3boto3 import S3Boto3Storage
 import os
+import boto3
+
+from .storages import LocalStorage, S3Storage
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # dependency
+    'storages',
     'rest_framework',
     #'background_task', --> does not support current version
     'corsheaders',
@@ -55,13 +60,15 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    #'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
+
+#CSRF_TRUSTED_ORIGINS = ['http://172.20.10.9:5174']
 
 ROOT_URLCONF = 'mockingJae_back.urls'
 
@@ -176,6 +183,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # It is an essential visual database for streaming.
 ARCHIVE_ROOT = os.path.join(BASE_DIR, "archive")
 
+
+DEFAULT_FILE_STORAGE = 'mockingJae_back.storages.LocalStorage'
+SCROLLS_S3_STORAGE = 'mockingJae_back.storages.S3Storage'
+
 # Model Defaults
 
 AUTH_USER_MODEL = 'main.user'
@@ -195,6 +206,42 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #IPFS_STORAGE_GATEWAY_URL = 'http://localhost:8080/ipfs/'
 # for production
 # IPFS_STORAGE_GATEWAY_URL = 'https://ipfs.io/ipfs/'
+
+# AWS Storage Configuration
+
+AWS_ACCESS_KEY_ID = 'AKIA2LTEYVF6BTM2NPUS' 
+AWS_SECRET_ACCESS_KEY = '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'
+AWS_REGION = 'ap-northeast-2'
+
+###S3 Storages
+AWS_STORAGE_BUCKET_NAME = 'scrollsbucket01' # 설정한 버킷 이름
+AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME,AWS_REGION)
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
+
+# Create an S3 client instance
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_REGION
+)
+
+# Create an S3 resource instance
+s3_resource = boto3.resource(
+    's3',
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_REGION
+)
+
+# Create an S3 storage instances
+s3_storage = S3Storage(
+    bucket_name=AWS_STORAGE_BUCKET_NAME,
+    custom_domain=AWS_S3_CUSTOM_DOMAIN,
+    s3=s3_resource
+)
 
 
 # Celery configurations

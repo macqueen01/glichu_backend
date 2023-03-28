@@ -3,10 +3,16 @@ import os
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
+
+from main.utils import create_tar_archive_with_parent_basename
 from .UserModel import User
 
 from main import tasks
-# from mockingJae_back.settings import
+from mockingJae_back.settings import s3_storage
+
+
+
+from django.core.files.storage import FileSystemStorage
 
 # Model Managers
 
@@ -97,6 +103,20 @@ class VideoMediaManager(models.Manager):
 
         if not media:
             return False
+        
+        os.remove(media.url_preprocess)
+        media.delete()
+
+        return True
+
+    def complete_delete(self, media_id):
+        media = self.get_video_from_id(media_id)
+
+        if not media:
+            return False
+        
+        if self.is_media_converted(media_id):
+            os.remove(media.url_postprocess)
         
         os.remove(media.url_preprocess)
         media.delete()
@@ -197,8 +217,7 @@ class ScrollsManager(models.Manager):
         
         VideoMedia.objects.delete(scrolls.original.id)
 
-        return True
-        
+        return True        
 
         
 
@@ -221,7 +240,35 @@ class ScrollsManager(models.Manager):
 
         return False
 
-    def upload(self, scrolls_id, scrolls_dirname, wait=True):
+    def _upload_to_s3(self, scrolls_id, scrolls_dirname):
+        """
+        Only used inside the manager.
+        Should not be called from outside.
+        """
+
+        scrolls_to_be_uploaded = self.get_scrolls_from_id(scrolls_id)
+
+        if not scrolls_to_be_uploaded:
+            return False
+
+        destination = f'{scrolls_dirname}/id{scrolls_to_be_uploaded.id}.tar'
+
+        create_tar_archive_with_parent_basename(
+            scrolls_dirname,
+            destination,
+            parent_basename = self.parsed_scrolls_name(scrolls_id))
+        
+        with open(destination, 'rb') as f:
+            file_data = f.read()
+        
+        try:
+            result = s3_storage.save(f'scrolls/id{scrolls_to_be_uploaded.id}.tar', file_data)
+        except:
+            return False
+            
+        return result
+
+    def upload(self, scrolls_id, scrolls_dirname, wait=True, ipfs=True):
         """
         Uploads the scroll cells to ipfs and returns 
         the uploaded scrolls object if wait == True,
@@ -231,16 +278,31 @@ class ScrollsManager(models.Manager):
         if not self.get_scrolls_from_id(scrolls_id):
             return False
 
+        if not ipfs:
+            # handles upload to 
+            return self._upload_to_s3(scrolls_id, scrolls_dirname, wait=wait)
+
         if not wait:
-            upload_task = tasks.upload_to_ipfs.delay(
+            upload_task = tasks.upload_to_ipfs_as_a_directory.delay(
                 dirname=scrolls_dirname, scrolls_id=scrolls_id)
             return upload_task.id
 
-        if upload_task_result := tasks.upload_to_ipfs(dirname=scrolls_dirname, scrolls_id=scrolls_id):
+        if upload_task_result := tasks.upload_to_ipfs_as_a_directory(dirname=scrolls_dirname, scrolls_id=scrolls_id):
             # waits until the end of uploading
             return upload_task_result
 
         return False
+
+
+    def parsed_scrolls_name(self, scrolls_id):
+        # returns a name that can be used for uploading scrolls to s3
+        scrolls = self.get_scrolls_from_id(scrolls_id)
+
+        if not scrolls:
+            return False
+        
+        parsed_name = scrolls.id + '_' + scrolls.title.replace(' ', '_') + '/scrolls' # "<id>_<scrolls title without whitespace>/scrolls"
+        return parsed_name
 
     def initialize(self, scrolls_id):
         """
@@ -271,6 +333,7 @@ class ScrollsManager(models.Manager):
             return False
 
         return True
+
 
 
     """
@@ -421,6 +484,9 @@ class Scrolls(models.Model):
     height = models.IntegerField(default=0)
     length = models.IntegerField(default=0)
     uploaded = models.IntegerField(default=0)
+    # Hash of ipfs if uploaded as a folder
+    # This could be empty if scrolls is uploaded as a cell
+    ipfs_hash = models.CharField(max_length=100, default="")
 
     objects = ScrollsManager()
 

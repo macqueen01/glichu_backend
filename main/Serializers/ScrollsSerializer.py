@@ -56,6 +56,7 @@ class ScrollsSerializer(serializers.ModelSerializer):
     length = serializers.IntegerField()
     cells = serializers.SerializerMethodField()
     uploaded = serializers.IntegerField()
+    ipfs_hash = serializers.CharField(max_length=100)
 
     def get_cells(self, instance):
         queryset = instance.cells.order_by('index')
@@ -74,7 +75,8 @@ class ScrollsSerializer(serializers.ModelSerializer):
             'height',
             'length',
             'cells',
-            'uploaded'
+            'uploaded',
+            'ipfs_hash'
         )
 
     

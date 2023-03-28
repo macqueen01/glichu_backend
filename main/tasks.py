@@ -80,7 +80,9 @@ def scrollify(input, output_dir, fps, quality=5):
         return False
 
     # quality should be in range of 1 ~ 31, from 1 being best to 31 being worst
-    assert (0 < quality and quality <= 31, True)
+    if quality < 1 or quality > 31:
+        return False
+    
     os.makedirs(output_dir)
 
     # Now start producing thumbnails
@@ -166,10 +168,46 @@ def upload_to_ipfs(dirname, scrolls_id):
 
     return False
 
+@shared_task
+def upload_to_ipfs_as_a_directory(dirname, scrolls_id):
+    """
+    This method is called by upload_scrolls_directory which uploads the scrolls folder
+    to ipfs as a directory.
+    """
+
+    scrolls_model = apps.get_model(
+        app_label='main', model_name='Scrolls', require_ready=True)
+
+    if not os.path.exists(dirname):
+        return False
+
+    scrolls_model.objects.initialize(scrolls_id)
+
+    if scrolls := scrolls_model.objects.get_scrolls_from_id(scrolls_id):
+        try: 
+            client = ipfshttpclient.connect()
+            res = client.add(dirname, recursive=True)
+            hashes = res['Hash']
+            scrolls.ipfs_hash = hashes
+    
+        except: 
+            hashes = ipfs_direct_call(dirname)
+            scrolls.ipfs_hash = hashes
+
+    
+        scrolls.length = len(os.listdir(dirname))
+        scrolls.uploaded = True
+        scrolls.save()
+    
+        return scrolls.id
+    return False
+                
+
 def ipfs_direct_call(directory):
     args = [
         'ipfs',
         'add',
+        '-r',
         directory
     ]
 
@@ -185,7 +223,7 @@ def ipfs_direct_call(directory):
     if process.returncode != 0:
         return False
     
-    return out.__str__().split(' ')[1]
+    return out.__str__().split(' ')[-2]
 
 
 def task_status(task_id):

@@ -3,9 +3,10 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import status, exceptions
 
+
 from main.models import Scrolls, User
 from main.serializer import *
-import tasks
+from main import tasks
 
 
 def upload_video(request):
@@ -23,7 +24,7 @@ def upload_video(request):
             unprocessed_video = request.data['video_to_upload']
             title = request.data['title']
             # only in production!
-            user_id = 2
+            user_id = 1
             # in production,
             # user_id = user_id from token
 
@@ -58,7 +59,7 @@ def scrollify_video(request):
         title = request.data['title']
         height = request.data['height']
         fps = request.data['fps']
-        quality = request.data['quality']
+        quality = int(request.data['quality'])
         media_id = tasks.get_result_from_task_id(task_id)
 
         if tasks.task_status(task_id) in [3,4]:
@@ -77,7 +78,8 @@ def scrollify_video(request):
                 status=status.HTTP_404_NOT_FOUND)
         
         if scrollify_task_id := VideoMedia.objects.mp4_to_scrolls(media_id=media_id, scrolls_id=scrolls_object.id, fps=fps, quality=quality):
-            return scrollify_task_id
+            return Response({'message': 'scrollify task successfully launched', 'task_id': scrollify_task_id, 'scrolls_id': scrolls_object.id},
+                status=status.HTTP_200_OK)
 
         # This deletes not only the scrolls but also related VideoMedia too.
         # Users have to re-upload from the begining when they reach here.
@@ -110,7 +112,8 @@ def upload_scrolls(request):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         if (upload_task_id := Scrolls.objects.upload(scrolls_id=scrolls_id, scrolls_dirname=scrolls_dirname, wait=False)):
-            return upload_task_id
+            return Response({'message': 'scrollify task successfully launched', 'task_id': upload_task_id},
+                status=status.HTTP_200_OK)
         
         return Response({'message': f'scrolls with id {scrolls_id} not found, try uploading again'},    
             status=status.HTTP_500_INTERNAL_SERVER_ERROR)

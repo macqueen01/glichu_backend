@@ -42,6 +42,20 @@ def scrolls_with_given_tag(request, tag_id):
         return Response({'message': f'scrolls with given tag no.{tag_id} not found'},
                         status=status.HTTP_404_NOT_FOUND)
 
+def get_all_scrolls(request):
+    # returns all scrolls in the database 
+    # this should be used only under debug flag
+
+    if request.method != 'GET':
+        return Response({'message': 'wrong method call'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+    scrolls = Scrolls.objects.all()
+    serializer = ScrollsSerializer
+    result = serializer(scrolls, many=True)
+    return Response(result.data, status=status.HTTP_200_OK)
+
+
 
 # provides a functional view that returns two serialized scrolls for given page number
 """
