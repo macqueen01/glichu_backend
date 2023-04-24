@@ -10,3 +10,4 @@ except:
     print('running ipfs add directly')
 
 __all__ = ('celery_app',)
+

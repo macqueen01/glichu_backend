@@ -261,5 +261,3 @@ def get_result_from_task_id(task_id):
 
     return result.AsyncResult(task_id).result
 
-
-

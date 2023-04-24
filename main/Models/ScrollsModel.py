@@ -1,3 +1,4 @@
+from io import BytesIO
 import os
 
 from django.db import models
@@ -6,6 +7,7 @@ from django.conf import settings
 
 from main.utils import create_tar_archive_with_parent_basename
 from .UserModel import User
+from .TaskModel import Task
 
 from main import tasks
 from mockingJae_back.settings import s3_storage
@@ -123,7 +125,10 @@ class VideoMediaManager(models.Manager):
 
         return True
 
-        
+    def get_uploader_from_media_id(self, media_id):
+        if media := self.get_video_from_id(media_id):
+            return media.uploader
+        return False
 
     def get_video_from_id(self, media_id):
         if (media := self.filter(id__exact=media_id)).exists():
@@ -143,6 +148,7 @@ class VideoMediaManager(models.Manager):
             original_video_path = os.path.join(settings.MEDIA_ROOT, original_video.url_preprocess.__str__())
             encoding_task = tasks.convert.delay(
                 input=original_video_path, output=converted_video_path, media_id=media_id)
+            # Task.objects.create_task(created_by=original_video.uploader, task_type='video_convert', task_id=encoding_task.id)
             return encoding_task.id
         return False
 
@@ -152,7 +158,7 @@ class VideoMediaManager(models.Manager):
             return True
         return False
 
-    def mp4_to_scrolls(self, media_id, scrolls_id, fps=60, quality=5):
+    def mp4_to_scrolls(self, media_id, scrolls_id, fps=60, quality=5, wait = False):
 
         date = timezone.now().date().__str__().replace('-', '')
 
@@ -168,8 +174,13 @@ class VideoMediaManager(models.Manager):
         scrolls_path = os.path.join(
             settings.MEDIA_ROOT, f'scrolls/{date}/{media.title}/')
 
-        if scrollify_task := tasks.scrollify.delay(input=media_path, output_dir=scrolls_path, fps=fps, quality=quality):
+        if wait:
+            scrollify_task = tasks.scrollify(input=media_path, output_dir=scrolls_path, fps=fps, quality=quality)
+            return scrollify_task
+        elif scrollify_task := tasks.scrollify.delay(input=media_path, output_dir=scrolls_path, fps=fps, quality=quality):
+            # Task.objects.create_task(created_by=media.uploader, task_type='scrolls_convert', task_id=scrollify_task.id)
             return scrollify_task.id
+            
         return False
 
 
@@ -257,16 +268,20 @@ class ScrollsManager(models.Manager):
             scrolls_dirname,
             destination,
             parent_basename = self.parsed_scrolls_name(scrolls_id))
-        
-        with open(destination, 'rb') as f:
-            file_data = f.read()
-        
+
         try:
-            result = s3_storage.save(f'scrolls/id{scrolls_to_be_uploaded.id}.tar', file_data)
+            with open(destination, 'rb') as f:
+                file_data = f.read()
+                file_obj = BytesIO(file_data)
+                result = s3_storage.save(f'scrolls/id{scrolls_to_be_uploaded.id}.tar', file_obj)
+                scrolls_to_be_uploaded.scrolls_url = s3_storage.url(result)
+                scrolls_to_be_uploaded.is_uploaded = True
+                scrolls_to_be_uploaded.save()
         except:
             return False
-            
-        return result
+        
+        return scrolls_to_be_uploaded.scrolls_url
+
 
     def upload(self, scrolls_id, scrolls_dirname, wait=True, ipfs=True):
         """
@@ -280,7 +295,7 @@ class ScrollsManager(models.Manager):
 
         if not ipfs:
             # handles upload to 
-            return self._upload_to_s3(scrolls_id, scrolls_dirname, wait=wait)
+            return self._upload_to_s3(scrolls_id, scrolls_dirname)
 
         if not wait:
             upload_task = tasks.upload_to_ipfs_as_a_directory.delay(
@@ -301,13 +316,13 @@ class ScrollsManager(models.Manager):
         if not scrolls:
             return False
         
-        parsed_name = scrolls.id + '_' + scrolls.title.replace(' ', '_') + '/scrolls' # "<id>_<scrolls title without whitespace>/scrolls"
+        parsed_name = f'{scrolls.id}' + '_' + scrolls.title.replace(' ', '_') + '/scrolls' # "<id>_<scrolls title without whitespace>/scrolls"
         return parsed_name
 
     def initialize(self, scrolls_id):
         """
         Initializes cells and length.
-        This should be called inside UPLOAD_TO_IPFS 
+        This should be called inside UPLOAD_TO_IPFS
         to make sure no remaining cells are inside scrolls before 
         adding cells to scrolls.
 
@@ -487,6 +502,7 @@ class Scrolls(models.Model):
     # Hash of ipfs if uploaded as a folder
     # This could be empty if scrolls is uploaded as a cell
     ipfs_hash = models.CharField(max_length=100, default="")
+    scrolls_url = models.CharField(max_length=400, default="")
 
     objects = ScrollsManager()
 
@@ -502,6 +518,14 @@ class Cell(models.Model):
 
     def __str__(self):
         return self.index.__str__()
+
+class Highlight(models.Model):
+    scrolls = models.ManyToManyField(to=Scrolls, related_name="highlight", null=True, default=None)
+    index = models.IntegerField(default=0)
+    title = models.CharField(max_length=100, default="Untitled")
+    # backward_audio_url = models.FileField(upload_to=)
+
+
 
 
 

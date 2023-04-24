@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from main.models import *
+from ..models import *
 from .UserSerializer import UserSerializer
 
 class MediaSerializer(serializers.ModelSerializer):
@@ -57,6 +57,7 @@ class ScrollsSerializer(serializers.ModelSerializer):
     cells = serializers.SerializerMethodField()
     uploaded = serializers.IntegerField()
     ipfs_hash = serializers.CharField(max_length=100)
+    scrolls_url = serializers.CharField(max_length=400)
 
     def get_cells(self, instance):
         queryset = instance.cells.order_by('index')
@@ -76,7 +77,8 @@ class ScrollsSerializer(serializers.ModelSerializer):
             'length',
             'cells',
             'uploaded',
-            'ipfs_hash'
+            'ipfs_hash',
+            'scrolls_url'
         )
 
     

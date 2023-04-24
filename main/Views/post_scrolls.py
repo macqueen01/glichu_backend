@@ -8,6 +8,28 @@ from main.models import Scrolls, User
 from main.serializer import *
 from main import tasks
 
+def task_status(request):
+    try:
+        if request.method == 'POST':
+
+            assert(request.data['task_id'])
+
+            task_id = request.data['task_id']
+            # only in production!
+            user_id = 1
+            # in production,
+            # user_id = user_id from token
+
+            task = tasks.task_status(task_id)
+
+            return Response({'status': f'{task}'}, 
+                status=status.HTTP_200_OK)
+
+        return Response({'message': 'wrong method call'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    except:
+        return Response({'message': 'argument missing'}, 
+            status=status.HTTP_400_BAD_REQUEST)
 
 def upload_video(request):
     """
@@ -18,6 +40,7 @@ def upload_video(request):
     """
     try:
         if request.method == 'POST':
+            print(request.data)
 
             assert(request.data['video_to_upload'] and request.data['title'])
 
@@ -27,6 +50,7 @@ def upload_video(request):
             user_id = 1
             # in production,
             # user_id = user_id from token
+
 
             video = VideoMedia.objects.create(video=unprocessed_video, title=title, user_id=user_id)
 
@@ -111,7 +135,7 @@ def upload_scrolls(request):
             return Response({'message': 'scrollify process was not successful, try uploading again'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        if (upload_task_id := Scrolls.objects.upload(scrolls_id=scrolls_id, scrolls_dirname=scrolls_dirname, wait=False)):
+        if (upload_task_id := Scrolls.objects.upload(scrolls_id=scrolls_id, scrolls_dirname=scrolls_dirname, wait=False, ipfs=False)):
             return Response({'message': 'scrollify task successfully launched', 'task_id': upload_task_id},
                 status=status.HTTP_200_OK)
         
@@ -120,4 +144,3 @@ def upload_scrolls(request):
     except:
         return Response({'message': 'argument missing'}, 
             status=status.HTTP_400_BAD_REQUEST)
-

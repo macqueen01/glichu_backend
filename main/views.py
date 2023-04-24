@@ -20,5 +20,8 @@ def scrollify_video(request):
 def scrolls_upload(request):
     return post_scrolls.upload_scrolls(request)
 
+@api_view(['POST'])
+def task_status(request):
+    return post_scrolls.task_status(request)
     
 
