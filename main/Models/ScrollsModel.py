@@ -228,10 +228,14 @@ class ScrollsManager(models.Manager):
         
         VideoMedia.objects.delete(scrolls.original.id)
 
-        return True        
+        return True
 
-        
+    def get_random_scrolls(self):
+        if (scrolls := self.all()).exists():
+            return scrolls.order_by('?').first()
+        return False
 
+    
     def get_scrolls_from_id(self, scrolls_id):
         if (scrolls := self.filter(id__exact=scrolls_id)).exists():
             return scrolls.get()

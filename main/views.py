@@ -8,6 +8,10 @@ def scrolls_browse(request):
     scrolls_id = request.query_params['id']
     return browse_scrolls.scrolls_with_given_id(request, scrolls_id)
 
+@api_view(['GET'])
+def random_scrolls(request):
+    return browse_scrolls.get_random_scrolls(request)
+
 @api_view(['POST'])
 def video_upload(request):
     return post_scrolls.upload_video(request)

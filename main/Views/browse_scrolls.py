@@ -55,7 +55,24 @@ def get_all_scrolls(request):
     result = serializer(scrolls, many=True)
     return Response(result.data, status=status.HTTP_200_OK)
 
+def get_random_scrolls(request):
+    
+    # returns one random scrolls from the database
 
+    if request.method != 'GET':
+        return Response({'message': 'wrong method call'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    scrolls = Scrolls.objects.get_random_scrolls()
+
+    if not scrolls:
+        return Response({'message': 'no scrolls found', 'scrolls': '[]'},
+            status=status.HTTP_200_OK)
+
+    serializer = ScrollsSerializer
+    result = serializer(scrolls)
+    
+    return Response(result.data, status=status.HTTP_200_OK)
 
 # provides a functional view that returns two serialized scrolls for given page number
 """
