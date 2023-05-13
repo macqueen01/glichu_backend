@@ -4,9 +4,8 @@ from django.contrib.auth.models import BaseUserManager
 from django.utils import timezone
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, name, password):
+    def create_user_with_password(self, username, password):
         user = self.model(
-            name = name,
             username = username,
             created_at = timezone.now(),
             is_staff = 0,
@@ -18,9 +17,42 @@ class UserManager(BaseUserManager):
         user.save(using = self._db)
         return user
     
-    def create_superuser(self, username, name, password):
-        user = self.create_user(
-            name = name,
+    def create_user_with_instagram_id(self, username, instagram_id, instagram_username):
+        user = self.model(
+            username = username,
+            created_at = timezone.now(),
+            is_staff = 0,
+            is_superuser = 0,
+            is_active = 0,
+            instagram_id = instagram_id,
+            instagram_username = instagram_username
+        )
+
+        user.save(using = self._db)
+        return user
+
+    def create_user_with_apple_id(self, username, apple_id, apple_username):
+        user = self.model(
+            username = username,
+            created_at = timezone.now(),
+            is_staff = 0,
+            is_superuser = 0,
+            is_active = 0,
+            apple_id = apple_id,
+            apple_username = apple_username
+        )
+
+        user.save(using = self._db)
+        return user
+    
+    def does_instagram_id_exist(self, instagram_id):
+        return self.filter(instagram_id__exact = instagram_id).exists()
+
+    def does_apple_id_exist(self, apple_id):
+        return self.filter(apple_id__exact = apple_id).exists()
+    
+    def create_superuser(self, username, password):
+        user = self.create_user_with_password(
             username = username,
             password = password
         )
@@ -38,14 +70,18 @@ class UserManager(BaseUserManager):
         
     
 class User(AbstractBaseUser):
-    password = models.CharField(max_length = 128)
+    password = models.CharField(max_length = 128, null = True)
     username = models.CharField(max_length = 120, unique = True)
-    name = models.CharField(max_length = 20)
     last_login = models.DateTimeField(blank = True, null = True)
     created_at = models.DateTimeField()
     is_superuser = models.IntegerField(blank = True, null = True)
     is_active = models.IntegerField(blank = True, null = True)
     is_staff = models.IntegerField(blank = True, null = True)
+
+    instagram_id = models.CharField(max_length = 120, blank = True, null = True, unique = True)
+    instagram_username = models.CharField(max_length = 120, blank = True, null = True)
+    apple_id = models.CharField(max_length = 120, blank = True, null = True, unique=True)
+    apple_username = models.CharField(max_length = 120, blank = True, null = True)
 
     objects = UserManager()
 

@@ -16,12 +16,18 @@ Including another URLconf
 from django.urls import path, include
 from main.views import scrolls_browse, \
     video_upload, scrollify_video, scrolls_upload, \
-    task_status, random_scrolls
+    task_status, random_scrolls, auto_recording_upload, is_duplicate_user, \
+    user_login, user_join, user_logout
 
 urlpatterns = [
     path('browse/', random_scrolls),
     path('upload/video', video_upload),
     path('upload/scrollify', scrollify_video),
     path('upload/post', scrolls_upload),
-    path('upload/task', task_status)
+    path('auto-recording/upload', auto_recording_upload),
+    path('upload/task', task_status),
+    path('auth/user-exists', is_duplicate_user),
+    path('auth/login', user_login),
+    path('auth/join', user_join),
+    path('auth/logout', user_logout),
 ]

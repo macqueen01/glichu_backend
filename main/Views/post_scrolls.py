@@ -40,7 +40,6 @@ def upload_video(request):
     """
     try:
         if request.method == 'POST':
-            print(request.data)
 
             assert(request.data['video_to_upload'] and request.data['title'])
 

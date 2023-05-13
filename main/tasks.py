@@ -7,6 +7,11 @@ import shutil
 
 from django.apps import apps
 
+from main.BusinessLogics import ffmpeg_parser
+from main.models import *
+
+
+# scrolls uploading tasks
 
 @shared_task
 def convert(input, output, media_id):
@@ -24,28 +29,7 @@ def convert(input, output, media_id):
 
     # Now start converting
 
-    args = [
-        'ffmpeg',
-        '-i',
-        f'{input}',
-        '-vcodec',
-        'libx264',
-        '-acodec',
-        'aac',
-        '-vf',
-        'setsar=1',
-        '-vf',
-        """scale='min(370, iw):-1'""",
-        f'{output}'
-    ]
-
-    process = subprocess.Popen(
-        args,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-    (out, err) = process.communicate('')
+    process, (_, _) = ffmpeg_parser.codec_converter(input, output_dir)
 
     if process.returncode != 0:
         shutil.rmtree(output)
@@ -53,9 +37,7 @@ def convert(input, output, media_id):
 
     if media_id:
         # Saves the converted media path if media id is given.
-        media_model = apps.get_model(
-            app_label='main', model_name='VideoMedia', require_ready=True)
-        media_object = media_model.objects.get(id__exact=media_id)
+        media_object = VideoMedia.objects.get(id__exact=media_id)
         media_object.url_postprocess = output
         media_object.save()
 
@@ -66,7 +48,7 @@ def convert(input, output, media_id):
 def scrollify(input, output_dir, fps, quality=5):
     """
     Scrollify takes a converted mp4 video as an input and 
-    creates a sequence of images taken inbetween the given framerate.
+    creates a sequence of images taken in-between the given frame rate.
     Scrollify then calls the scroll with the given scrolls_id, writes the cell objects,
     and then saves them.
 
@@ -87,24 +69,7 @@ def scrollify(input, output_dir, fps, quality=5):
 
     # Now start producing thumbnails
 
-    args = [
-        'ffmpeg',
-        '-i',
-        f'{input}',
-        '-qscale:v',
-        f'{quality}',
-        '-vf',
-        f'fps={fps}',
-        f'{output_dir}/%d.jpeg'
-    ]
-
-    process = subprocess.Popen(
-        args,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-    (out, err) = process.communicate('')
+    process, (_, _) = ffmpeg_parser.slice_to_images(input, output_dir, fps, quality)
 
     if process.returncode != 0:
         shutil.rmtree(output_dir)
@@ -113,19 +78,18 @@ def scrollify(input, output_dir, fps, quality=5):
     return output_dir
 
 
+# ipfs uploader
+
+
 @shared_task
 def upload_to_ipfs(dirname, scrolls_id):
-
-    scrolls_model = apps.get_model(
-        app_label='main', model_name='Scrolls', require_ready=True)
-
 
     if not os.path.exists(dirname):
         return False
 
-    scrolls_model.objects.initialize(scrolls_id)
+    Scrolls.objects.initialize(scrolls_id)
 
-    if scrolls := scrolls_model.objects.get_scrolls_from_id(scrolls_id):
+    if scrolls := Scrolls.objects.get_scrolls_from_id(scrolls_id):
 
         try: 
             client = ipfshttpclient.connect()
@@ -139,7 +103,7 @@ def upload_to_ipfs(dirname, scrolls_id):
                 res = client.add(file_path)
                 hashes.append(res)
 
-                cell = scrolls_model.objects.create_cell(
+                cell = Scrolls.objects.create_cell(
                     scrolls_id, res['Hash'], index)
                 cell.save()
             
@@ -154,7 +118,7 @@ def upload_to_ipfs(dirname, scrolls_id):
                 hash = ipfs_direct_call(file_path)
                 hashes.append(hash)
 
-                cell = scrolls_model.objects.create_cell(
+                cell = Scrolls.objects.create_cell(
                     scrolls_id, hash, index)
                 cell.save()
             
@@ -175,15 +139,12 @@ def upload_to_ipfs_as_a_directory(dirname, scrolls_id):
     to ipfs as a directory.
     """
 
-    scrolls_model = apps.get_model(
-        app_label='main', model_name='Scrolls', require_ready=True)
-
     if not os.path.exists(dirname):
         return False
 
-    scrolls_model.objects.initialize(scrolls_id)
+    Scrolls.objects.initialize(scrolls_id)
 
-    if scrolls := scrolls_model.objects.get_scrolls_from_id(scrolls_id):
+    if scrolls := Scrolls.objects.get_scrolls_from_id(scrolls_id):
         try: 
             client = ipfshttpclient.connect()
             res = client.add(dirname, recursive=True)
@@ -225,6 +186,72 @@ def ipfs_direct_call(directory):
     
     return out.__str__().split(' ')[-2]
 
+
+# auto remix upload
+
+
+@shared_task
+def remix_to_video(output_dir, remix):
+
+    # sort the files in the scrolls_dir and then create a list of files
+
+    scrolls_dir = remix.get_scrolls().scrolls_dir
+
+    if not os.path.exists(scrolls_dir):
+        return False
+    
+    if os.path.exists(output_dir):
+        return False
+    
+    os.makedirs(output_dir)
+
+    files = os.listdir(scrolls_dir)
+    files.sort()
+
+    remix_name = remix.title
+
+    # Now create ffmpegTemp in output_dir so that we can write the command on the file then refer it when ffmpeg task
+    ffmpegTemp = os.path.join(output_dir, 'ffmpegTemp.txt')
+
+    current_timestamp = remix.get_timeline().sentinel
+
+    while current_timestamp.next:
+        next_stamp = current_timestamp.next
+
+        image_path = files[current_timestamp.index]
+        timegap = next_stamp.timestamp - current_timestamp.timestamp
+        # convert timestamp to milliseconds string
+        timegap = str(int(timegap * 1000))
+
+        with open(ffmpegTemp, 'a') as f:
+            f.write(f'file \{image_path}\n')
+            f.write(f'duration {timegap}\n')
+
+        current_timestamp = next_stamp
+    
+    # Now start converting
+
+    process, (_, _) = ffmpeg_parser.execute_from_txt_file(ffmpegTemp, output_dir, remix_name)
+
+    if process.returncode != 0:
+        shutil.rmtree(output_dir)
+        return False
+
+    # if successfully converted, delete the ffmpegTemp file
+    os.remove(ffmpegTemp)
+
+    remix_model = Remix.create_remix(
+        title = remix_name, 
+        scrolls = remix.get_scrolls(),
+        remix_directory = output_dir,
+        )
+    
+    remix_model.save()
+
+    return remix_model.__str__()
+
+
+# task health checker
 
 def task_status(task_id):
 

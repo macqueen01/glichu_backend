@@ -161,11 +161,12 @@ class VideoMediaManager(models.Manager):
     def mp4_to_scrolls(self, media_id, scrolls_id, fps=60, quality=5, wait = False):
 
         date = timezone.now().date().__str__().replace('-', '')
+        scrolls = Scrolls.objects.get_scrolls_from_id(scrolls_id)
 
         if not self.is_media_converted(media_id):
             return False
 
-        if not Scrolls.objects.get_scrolls_from_id(scrolls_id):
+        if not scrolls:
             return False
 
         media = self.get_video_from_id(media_id)
@@ -174,8 +175,12 @@ class VideoMediaManager(models.Manager):
         scrolls_path = os.path.join(
             settings.MEDIA_ROOT, f'scrolls/{date}/{media.title}/')
 
+
+        scrolls.scrolls_dir = scrolls_path
+        scrolls.save()
+            
         if wait:
-            scrollify_task = tasks.scrollify(input=media_path, output_dir=scrolls_path, fps=fps, quality=quality)
+            scrollify_task = tasks.scrollify(input=media_path, output_dir=scrolls_path, fps=fps, quality=quality)()
             return scrollify_task
         elif scrollify_task := tasks.scrollify.delay(input=media_path, output_dir=scrolls_path, fps=fps, quality=quality):
             # Task.objects.create_task(created_by=media.uploader, task_type='scrolls_convert', task_id=scrollify_task.id)
@@ -507,6 +512,7 @@ class Scrolls(models.Model):
     # This could be empty if scrolls is uploaded as a cell
     ipfs_hash = models.CharField(max_length=100, default="")
     scrolls_url = models.CharField(max_length=400, default="")
+    scrolls_dir = models.CharField(max_length=200, default='/')
 
     objects = ScrollsManager()
 
