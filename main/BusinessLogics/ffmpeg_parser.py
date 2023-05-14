@@ -45,7 +45,7 @@ def slice_to_images(input_path, output_dir, fps, quality):
     args = [
         'ffmpeg',
         '-i',
-        f'{input}',
+        f'{input_path}',
         '-qscale:v',
         f'{quality}',
         '-vf',
@@ -65,6 +65,12 @@ def slice_to_images(input_path, output_dir, fps, quality):
 
 
 def execute_from_txt_file(txt_file_path, output_dir, filename):
+
+    if output_dir[-1] == '/':
+        output_dir = output_dir[:-1]
+
+    print(f'{output_dir}/{filename}')
+
     
     args = [
         'ffmpeg',
@@ -74,9 +80,7 @@ def execute_from_txt_file(txt_file_path, output_dir, filename):
         '0',
         '-i',
         f'{txt_file_path}',
-        '-c',
-        'copy',
-        f'{output_dir}/{filename}.mp4'
+        f'{output_dir}/{filename}'
     ]
 
     process = subprocess.Popen(

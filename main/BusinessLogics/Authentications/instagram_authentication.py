@@ -14,6 +14,7 @@ def get_user_from_token(token):
         return None
     return objs.first().user
 
+
 def logout_user(request):
     _, token = request.META.get('HTTP_AUTHORIZATION').split(' ')
     if request.method == 'POST':

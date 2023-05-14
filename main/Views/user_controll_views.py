@@ -60,6 +60,28 @@ def logout_user(request):
         except:
             return Response({"message": "Token removal error"},
                 status = status.HTTP_404_NOT_FOUND)
+        
+def login_user_with_token(request):
+    if request.method == 'POST':
+        try:
+            token = request.data['token']
+            user = get_user_from_token(token)
+            if user is None:
+                return Response({"message": "Token is invalid"},
+                    status = status.HTTP_404_NOT_FOUND)
+            else:
+                return Response(
+                    {"message": "User logged in", 
+                     "username": user.username,
+                     "profile_image": None,
+                     "user_id": user.id
+                    },
+                    status = status.HTTP_200_OK)
+        except:
+            return Response({"message": "Token is invalid"},
+                status = status.HTTP_404_NOT_FOUND)
+    return Response({'message': "wrong method call"}, status = status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 def login_user(request):
     if request.method == 'POST':

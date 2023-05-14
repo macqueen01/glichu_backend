@@ -1,5 +1,6 @@
 from io import BytesIO
 import os
+import shutil
 
 from django.db import models
 from django.utils import timezone
@@ -187,6 +188,16 @@ class VideoMediaManager(models.Manager):
             return scrollify_task.id
             
         return False
+    
+    def remix_to_video(output_path, remix):
+        auto_recording_task = tasks.remix_to_video.apply_async(
+            kwargs={
+                'output_path': output_path,
+                'remix': remix,
+            }
+        )
+        if auto_recording_task:
+            return auto_recording_task.id
 
 
 class ScrollsManager(models.Manager):
@@ -286,6 +297,9 @@ class ScrollsManager(models.Manager):
                 scrolls_to_be_uploaded.scrolls_url = s3_storage.url(result)
                 scrolls_to_be_uploaded.is_uploaded = True
                 scrolls_to_be_uploaded.save()
+            
+            # uploads raw folder to s3 then deletes the local folder
+            self.upload_raw(scrolls_id)
         except:
             return False
         
@@ -303,7 +317,7 @@ class ScrollsManager(models.Manager):
             return False
 
         if not ipfs:
-            # handles upload to 
+            # handles upload to
             return self._upload_to_s3(scrolls_id, scrolls_dirname)
 
         if not wait:
@@ -316,6 +330,56 @@ class ScrollsManager(models.Manager):
             return upload_task_result
 
         return False
+    
+    def upload_raw(self, scrolls_id):
+        
+        if not self.get_scrolls_from_id(scrolls_id):
+            return False
+        
+        scrolls = self.get_scrolls_from_id(scrolls_id)
+
+        if not scrolls.scrolls_dir:
+            return False
+        
+        scrolls_dirname = scrolls.scrolls_dir
+
+        s3_path = self.upload_directory_to_s3(scrolls_dirname)
+        scrolls.scrolls_dir = s3_path
+        scrolls.save()
+
+        return None
+
+
+    def upload_directory_to_s3(self, path):
+
+        split_name = path.split('/')
+        
+        if split_name[-1] == '':
+            dir_name = split_name[-2]
+        else:
+            dir_name = split_name[-1]
+
+        try:
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    destination = os.path.join(f'raw-scrolls/{dir_name}/', os.path.relpath(file_path, path))
+                    
+                    with open(file_path, 'rb') as f:
+                        file_data = f.read()
+                        file_obj = BytesIO(file_data)
+                        s3_storage.save(destination, file_obj)
+        except:
+            return False
+        
+        # deletes the locally uploaded scrolls directory
+        shutil.rmtree(path)
+
+        return f"https://{s3_storage.bucket_name}.s3.amazonaws.com/raw-scrolls/{dir_name}"
+
+
+            
+
 
 
     def parsed_scrolls_name(self, scrolls_id):

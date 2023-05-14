@@ -44,7 +44,7 @@ def upload_video(request):
             assert(request.data['video_to_upload'] and request.data['title'])
 
             unprocessed_video = request.data['video_to_upload']
-            title = request.data['title']
+            title = request.data['title'].split('.')[0]
             # only in production!
             user_id = 1
             # in production,

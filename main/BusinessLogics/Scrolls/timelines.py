@@ -1,14 +1,11 @@
 import datetime
 
-from main.Models.ScrollsModel import Scrolls
-
+from django.apps import apps
 class TimelineStamp:
     
     def __init__(self, datetime, index):
         self.datetime = datetime
         self.index = index
-
-        print(datetime)
 
     def set_next(self, next):
         self.next = next
@@ -28,7 +25,6 @@ class IndexTimeline:
         self.length = length
     
     def _parse_timeline_from_json(self, timeline_json):
-
         if timeline_json == 'null' or timeline_json == None:
             return None
 
@@ -53,9 +49,11 @@ class IndexTimeline:
 class Remix:
 
     def __init__(self, title, timeline, scrolls_id):
-        self._timeline = self.timeline
+        self.scrolls_model = apps.get_model(
+            app_label='main', model_name='Scrolls', require_ready=True)
+        self._timeline = timeline
         self._title = title
-        self._scrolls = Scrolls.objects.get(id=scrolls_id)
+        self._scrolls = self.scrolls_model.objects.get(id=scrolls_id)
 
     def get_title(self):
         return self._title
@@ -64,8 +62,7 @@ class Remix:
         return self._timeline.length
     
     def get_scrolls(self):
-        scrolls = Scrolls.objects.get(id=self._scrolls)
-        return scrolls
+        return self._scrolls
 
     def get_timeline(self):
         return self._timeline

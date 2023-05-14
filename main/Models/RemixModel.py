@@ -28,13 +28,30 @@ class RemixManager(models.Manager):
     def get_all_remixes_of_scrolls(self, scrolls_id):
         return self.filter(scrolls=scrolls_id).all()
     
+    def remix_to_video(output_path, remix):
+        if auto_recording_task := tasks.remix_to_video.delay(
+            output_path = output_path,
+            remix = remix
+        ):
+            return auto_recording_task.id
+        return False
+    
 
 class RemixManager_DEBUG(models.Manager):
 
     def create_remix(self, title, scrolls, remix_directory):
         user = User.objects.get(id=1)
         remix = self.create(title=title, user=user, scrolls=scrolls, remix_directory=remix_directory)
+        remix.save()
         return remix
+    
+    def remix_to_video(output_path, remix):
+        if auto_recording_task := tasks.remix_to_video.delay(
+            output_path = output_path,
+            remix = remix
+        ):
+            return auto_recording_task.id
+        return False
 
 class Remix(models.Model):
     """
@@ -43,11 +60,11 @@ class Remix(models.Model):
 
     title = models.CharField(max_length=255)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    remix_directory = models.FileField(storage=s3_storage, upload_to='remixes/%Y%m%d', null=True)
+    remix_directory = models.CharField(max_length=500, null=True, default='/')
     created_at = models.DateTimeField(auto_now_add=True)
     scrolls = models.ForeignKey('Scrolls', on_delete=models.CASCADE, null=True)
 
-    object = RemixManager_DEBUG()
+    objects = RemixManager_DEBUG()
 
     def __str__(self):
         return self.title

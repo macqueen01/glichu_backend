@@ -40,6 +40,10 @@ def is_duplicate_user(request):
     return user_controll_views.is_duplicate_user(request)
 
 @api_view(['POST'])
+def user_login_with_token(request):
+    return user_controll_views.login_user_with_token(request)
+
+@api_view(['POST'])
 def user_login(request):
     return user_controll_views.login_user(request)
 

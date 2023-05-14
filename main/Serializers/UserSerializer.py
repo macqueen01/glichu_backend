@@ -9,7 +9,6 @@ class CreateUserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             "username",
-            "name",
             "password",
         )
 
@@ -27,7 +26,6 @@ class UserSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "username",
-            "name",
             "created_at",
             "is_staff",
             "is_active"

@@ -3,6 +3,10 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import BaseUserManager
 from django.utils import timezone
 
+from mockingJae_back import settings
+
+from mockingJae_back.storages import S3Storage
+
 class UserManager(BaseUserManager):
     def create_user_with_password(self, username, password):
         user = self.model(
@@ -82,6 +86,8 @@ class User(AbstractBaseUser):
     instagram_username = models.CharField(max_length = 120, blank = True, null = True)
     apple_id = models.CharField(max_length = 120, blank = True, null = True, unique=True)
     apple_username = models.CharField(max_length = 120, blank = True, null = True)
+
+    profile_image = models.ImageField(storage = settings.s3_storage, upload_to = 'profile_image', blank = True, null = True, default='profile_image/default.png')
 
     objects = UserManager()
 

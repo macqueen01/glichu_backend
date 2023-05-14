@@ -8,8 +8,104 @@ import shutil
 from django.apps import apps
 
 from main.BusinessLogics import ffmpeg_parser
-from main.models import *
+from main.BusinessLogics.Scrolls.timelines import IndexTimeline
+from main.BusinessLogics.Scrolls.timelines import Remix as RemixInMemory
+from mockingJae_back.storages import download_files_from_s3
+from mockingJae_back import settings
+from mockingJae_back.celery import app
 
+@shared_task
+def remix_to_video(json):
+
+    timeline_json = json['timeline']['first']
+    title = json['title']
+    length = json['length']
+    scrolls = json['scrolls']
+    scrolls_id = int(scrolls.split('_')[0])
+
+    timeline = IndexTimeline(
+        timeline_json=timeline_json,
+        length=length,
+    )
+    
+    remix = RemixInMemory(
+        title = title,
+        timeline=timeline,
+        scrolls_id=scrolls_id,
+    )
+
+    output_path = os.path.join(
+                settings.MEDIA_ROOT, 
+                f'auto_recordings/{remix.get_scrolls().id}/{remix.get_title()}'
+            )
+
+    remix_model = apps.get_model(
+            app_label='main', model_name='Remix', require_ready=True)
+
+    # sort the files in the scrolls_dir and then create a list of files
+
+    if remix.get_scrolls().scrolls_dir.split('/')[-1] == '':
+        scrolls_name = remix.get_scrolls().scrolls_dir.split('/')[-2]
+        image_sequences_dir = remix.get_scrolls().scrolls_dir.split('/')[-3]
+    else:
+        scrolls_name = remix.get_scrolls().scrolls_dir.split('/')[-1]
+        image_sequences_dir = remix.get_scrolls().scrolls_dir.split('/')[-2]
+        
+    scrolls_dir = f'{image_sequences_dir}/{scrolls_name}/'
+    output_dir = f'{os.path.dirname(output_path)}/'
+    
+    remix_name = remix.get_title()
+
+    # if the output path already exists, add a number to the end of the file until it doesn't exist
+    i = 1
+    while os.path.exists(output_path):
+        output_path = f'{output_dir}{remix_name.split(".")[0]}{i}.mp4'
+        i += 1
+    
+    remix_name = output_path.split('/')[-1]
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    files = download_files_from_s3(settings.s3_client, os.environ.get('AWS_STORAGE_BUCKET_NAME'), scrolls_dir, settings.TEMP_ROOT)
+
+    # Now create ffmpegTemp in output_dir so that we can write the command on the file then refer it when ffmpeg task
+    ffmpegTemp = os.path.join(output_dir, 'ffmpegTemp.txt')
+
+    current_timestamp = remix.get_timeline().sentinel
+
+    while current_timestamp.next:
+        next_stamp = current_timestamp.next
+
+        image_path = files[current_timestamp.index]
+        timegap = (next_stamp.datetime - current_timestamp.datetime).total_seconds()
+        timegap = str(format(timegap, ".6f"))
+
+        with open(ffmpegTemp, 'a') as f:
+            f.write(f'file \{image_path}\n')
+            f.write(f'duration {timegap}\n')
+
+        current_timestamp = next_stamp
+    
+    # Now start converting
+
+    process, (out, err) = ffmpeg_parser.execute_from_txt_file(ffmpegTemp, output_dir, remix_name)
+
+    if process.returncode != 0:
+        os.remove(output_path)
+        os.remove(ffmpegTemp)
+        return False
+
+    os.remove(ffmpegTemp)
+    # removes the scrolls_dir from the temporary directory
+    shutil.rmtree(f'{settings.TEMP_ROOT}/{scrolls_dir}')
+
+    remix_obj = remix_model.objects.create_remix(
+        title = remix_name, 
+        scrolls = remix.get_scrolls(),
+        remix_directory = output_path,
+        )
+
+    return remix_obj.__str__()
 
 # scrolls uploading tasks
 
@@ -29,7 +125,7 @@ def convert(input, output, media_id):
 
     # Now start converting
 
-    process, (_, _) = ffmpeg_parser.codec_converter(input, output_dir)
+    process, (_, _) = ffmpeg_parser.codec_converter(input, output)
 
     if process.returncode != 0:
         shutil.rmtree(output)
@@ -37,7 +133,9 @@ def convert(input, output, media_id):
 
     if media_id:
         # Saves the converted media path if media id is given.
-        media_object = VideoMedia.objects.get(id__exact=media_id)
+        media_model = apps.get_model(
+            app_label='main', model_name='VideoMedia', require_ready=True)
+        media_object = media_model.objects.get(id__exact=media_id)
         media_object.url_postprocess = output
         media_object.save()
 
@@ -87,9 +185,11 @@ def upload_to_ipfs(dirname, scrolls_id):
     if not os.path.exists(dirname):
         return False
 
-    Scrolls.objects.initialize(scrolls_id)
+    scrolls_model = apps.get_model(
+            app_label='main', model_name='Scrolls', require_ready=True)
+    scrolls_model.objects.initialize(scrolls_id)
 
-    if scrolls := Scrolls.objects.get_scrolls_from_id(scrolls_id):
+    if scrolls := scrolls_model.objects.get_scrolls_from_id(scrolls_id):
 
         try: 
             client = ipfshttpclient.connect()
@@ -103,7 +203,7 @@ def upload_to_ipfs(dirname, scrolls_id):
                 res = client.add(file_path)
                 hashes.append(res)
 
-                cell = Scrolls.objects.create_cell(
+                cell = scrolls_model.objects.create_cell(
                     scrolls_id, res['Hash'], index)
                 cell.save()
             
@@ -118,7 +218,7 @@ def upload_to_ipfs(dirname, scrolls_id):
                 hash = ipfs_direct_call(file_path)
                 hashes.append(hash)
 
-                cell = Scrolls.objects.create_cell(
+                cell = scrolls_model.objects.create_cell(
                     scrolls_id, hash, index)
                 cell.save()
             
@@ -141,10 +241,13 @@ def upload_to_ipfs_as_a_directory(dirname, scrolls_id):
 
     if not os.path.exists(dirname):
         return False
+    
+    scrolls_model = apps.get_model(
+            app_label='main', model_name='Scrolls', require_ready=True)
 
-    Scrolls.objects.initialize(scrolls_id)
+    scrolls_model.objects.initialize(scrolls_id)
 
-    if scrolls := Scrolls.objects.get_scrolls_from_id(scrolls_id):
+    if scrolls := scrolls_model.objects.get_scrolls_from_id(scrolls_id):
         try: 
             client = ipfshttpclient.connect()
             res = client.add(dirname, recursive=True)
@@ -185,71 +288,6 @@ def ipfs_direct_call(directory):
         return False
     
     return out.__str__().split(' ')[-2]
-
-
-# auto remix upload
-
-
-@shared_task
-def remix_to_video(output_dir, remix):
-
-    # sort the files in the scrolls_dir and then create a list of files
-
-    scrolls_dir = remix.get_scrolls().scrolls_dir
-
-    if not os.path.exists(scrolls_dir):
-        return False
-    
-    if os.path.exists(output_dir):
-        return False
-    
-    os.makedirs(output_dir)
-
-    files = os.listdir(scrolls_dir)
-    files.sort()
-
-    remix_name = remix.title
-
-    # Now create ffmpegTemp in output_dir so that we can write the command on the file then refer it when ffmpeg task
-    ffmpegTemp = os.path.join(output_dir, 'ffmpegTemp.txt')
-
-    current_timestamp = remix.get_timeline().sentinel
-
-    while current_timestamp.next:
-        next_stamp = current_timestamp.next
-
-        image_path = files[current_timestamp.index]
-        timegap = next_stamp.timestamp - current_timestamp.timestamp
-        # convert timestamp to milliseconds string
-        timegap = str(int(timegap * 1000))
-
-        with open(ffmpegTemp, 'a') as f:
-            f.write(f'file \{image_path}\n')
-            f.write(f'duration {timegap}\n')
-
-        current_timestamp = next_stamp
-    
-    # Now start converting
-
-    process, (_, _) = ffmpeg_parser.execute_from_txt_file(ffmpegTemp, output_dir, remix_name)
-
-    if process.returncode != 0:
-        shutil.rmtree(output_dir)
-        return False
-
-    # if successfully converted, delete the ffmpegTemp file
-    os.remove(ffmpegTemp)
-
-    remix_model = Remix.create_remix(
-        title = remix_name, 
-        scrolls = remix.get_scrolls(),
-        remix_directory = output_dir,
-        )
-    
-    remix_model.save()
-
-    return remix_model.__str__()
-
 
 # task health checker
 

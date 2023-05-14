@@ -188,6 +188,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # It is an essential visual database for streaming.
 ARCHIVE_ROOT = os.path.join(BASE_DIR, "archive")
 
+# TEMP_ROOT stores all temporary files.
+# It is used for video conversion.
+TEMP_ROOT = os.path.join(BASE_DIR, "temp")
+
 
 DEFAULT_FILE_STORAGE = 'mockingJae_back.storages.LocalStorage'
 SCROLLS_S3_STORAGE = 'mockingJae_back.storages.S3Storage'
