@@ -94,7 +94,7 @@ class User(AbstractBaseUser):
     objects = UserManager()
 
     USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['name']
+    REQUIRED_FIELDS = ['password']
 
     def has_perm(self, perm, obj = None):
         return True
