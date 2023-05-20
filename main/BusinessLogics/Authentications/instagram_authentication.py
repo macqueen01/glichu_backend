@@ -8,6 +8,7 @@ from rest_framework import status, exceptions
 from main.Models.UserModel import User
 
 
+
 def get_user_from_token(token):
     objs = AuthToken.objects.filter(token_key=token[:CONSTANTS.TOKEN_KEY_LENGTH])
     if len(objs) == 0:

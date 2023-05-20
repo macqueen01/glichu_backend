@@ -188,16 +188,6 @@ class VideoMediaManager(models.Manager):
             return scrollify_task.id
             
         return False
-    
-    def remix_to_video(output_path, remix):
-        auto_recording_task = tasks.remix_to_video.apply_async(
-            kwargs={
-                'output_path': output_path,
-                'remix': remix,
-            }
-        )
-        if auto_recording_task:
-            return auto_recording_task.id
 
 
 class ScrollsManager(models.Manager):
@@ -250,7 +240,22 @@ class ScrollsManager(models.Manager):
         if (scrolls := self.all()).exists():
             return scrolls.order_by('?').first()
         return False
+    
+    def get_thumbnail(self, scrolls_id):
+        scrolls = self.get_scrolls_from_id(scrolls_id)
 
+        if not scrolls:
+            return False
+        
+        if scrolls_dir[-1] == '/':
+            scrolls_dir = scrolls_dir[:-1]
+
+        thumbnail_dir = f'{scrolls_dir}/1.jpeg'
+        
+        return thumbnail_dir
+    
+    def get_scrolls_by_user(self, user_id):
+        return self.filter(created_by__pk=user_id).filter(uploaded__exact = 1)
     
     def get_scrolls_from_id(self, scrolls_id):
         if (scrolls := self.filter(id__exact=scrolls_id)).exists():
@@ -299,7 +304,11 @@ class ScrollsManager(models.Manager):
                 scrolls_to_be_uploaded.save()
             
             # uploads raw folder to s3 then deletes the local folder
-            self.upload_raw(scrolls_id)
+            self.upload_raw_then_delete_original(scrolls_id)
+
+            scrolls_to_be_uploaded.uploaded = 1
+            scrolls_to_be_uploaded.save()
+
         except:
             return False
         
@@ -331,7 +340,7 @@ class ScrollsManager(models.Manager):
 
         return False
     
-    def upload_raw(self, scrolls_id):
+    def upload_raw_then_delete_original(self, scrolls_id):
         
         if not self.get_scrolls_from_id(scrolls_id):
             return False
@@ -344,6 +353,10 @@ class ScrollsManager(models.Manager):
         scrolls_dirname = scrolls.scrolls_dir
 
         s3_path = self.upload_directory_to_s3(scrolls_dirname)
+
+        # deletes the locally uploaded scrolls directory
+        shutil.rmtree(scrolls_dirname)
+
         scrolls.scrolls_dir = s3_path
         scrolls.save()
 
@@ -351,7 +364,6 @@ class ScrollsManager(models.Manager):
 
 
     def upload_directory_to_s3(self, path):
-
         split_name = path.split('/')
         
         if split_name[-1] == '':
@@ -371,9 +383,6 @@ class ScrollsManager(models.Manager):
                         s3_storage.save(destination, file_obj)
         except:
             return False
-        
-        # deletes the locally uploaded scrolls directory
-        shutil.rmtree(path)
 
         return f"https://{s3_storage.bucket_name}.s3.amazonaws.com/raw-scrolls/{dir_name}"
 
@@ -555,6 +564,17 @@ class Tag(models.Model):
 
     def __str__(self):
         return "#"+self.hashtag
+    
+
+class AudioModel(models.Model):
+    title = models.CharField(max_length=500)
+    forward_audio_url = models.CharField(max_length=500)
+    backward_audio_url = models.CharField(max_length=500)
+
+    created_by = models.ForeignKey(to=User, on_delete=models.SET_NULL, null=True, related_name = "uploaded_audios")
+    created_at = models.DateTimeField(auto_now=True)
+
+
 
 
 class Scrolls(models.Model):
@@ -577,6 +597,8 @@ class Scrolls(models.Model):
     ipfs_hash = models.CharField(max_length=100, default="")
     scrolls_url = models.CharField(max_length=400, default="")
     scrolls_dir = models.CharField(max_length=200, default='/')
+
+    audios = models.ManyToManyField(to=AudioModel, related_name="used_in", null = True)
 
     objects = ScrollsManager()
 

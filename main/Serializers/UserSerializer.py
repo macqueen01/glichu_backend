@@ -31,6 +31,29 @@ class UserSerializer(serializers.ModelSerializer):
             "is_active"
         )
 
+
+class UserSerializerForRemix(serializers.ModelSerializer):
+    profile_image = serializers.ImageField(use_url=True)
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "username",
+            "profile_image"
+        )
+
+class UserSerializerForScrolls(serializers.ModelSerializer):
+    profile_image = serializers.ImageField(use_url=True)
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "username",
+            "profile_image"
+        )
+
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()

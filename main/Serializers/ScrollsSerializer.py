@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from ..models import *
-from .UserSerializer import UserSerializer
+from .UserSerializer import UserSerializer, UserSerializerForScrolls
 
 class MediaSerializer(serializers.ModelSerializer):
     url_preprocess = serializers.FileField()
@@ -80,6 +80,39 @@ class ScrollsSerializer(serializers.ModelSerializer):
             'ipfs_hash',
             'scrolls_url'
         )
+
+class ScrollsSerializerForRemix(serializers.ModelSerializer):
+    title = serializers.CharField(max_length=100)
+    scrolls_url = serializers.CharField(max_length=400)
+    scrolls_dir = serializers.CharField(max_length=200)
+
+    class Meta:
+        model = Scrolls
+        fields = (
+            'id',
+            'title',
+            'scrolls_url',
+            'scrolls_dir'
+        )
+
+class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
+    thumbnail_url = serializers.SerializerMethodField()
+    created_by = UserSerializerForScrolls()
+
+    def get_thumbnail_url(self, instance):
+        return f'{instance.scrolls_dir}/1.jpeg'
+
+    class Meta:
+        model = Scrolls
+        fields = (
+            'id',
+            'title',
+            'scrolls_url',
+            'scrolls_dir',
+            'thumbnail_url',
+            'created_by'
+        )
+    
 
     
 

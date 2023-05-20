@@ -89,6 +89,8 @@ class User(AbstractBaseUser):
 
     profile_image = models.ImageField(storage = settings.s3_storage, upload_to = 'profile_image', blank = True, null = True, default='profile_image/default.png')
 
+    followers = models.ManyToManyField('self', symmetrical = False, related_name = 'followings')
+    
     objects = UserManager()
 
     USERNAME_FIELD = 'username'

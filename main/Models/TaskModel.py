@@ -107,5 +107,3 @@ class Task(models.Model):
     task_type = models.CharField(max_length=100, default='')
 
     objects = TaskManager()
-
-        

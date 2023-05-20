@@ -2,6 +2,7 @@ from django.utils import timezone
 
 from rest_framework.response import Response
 from rest_framework import status, exceptions
+from rest_framework.pagination import PageNumberPagination
 
 from main.models import Scrolls, User, Recommendation
 from main.serializer import *
@@ -69,10 +70,33 @@ def get_random_scrolls(request):
         return Response({'message': 'no scrolls found', 'scrolls': '[]'},
             status=status.HTTP_200_OK)
 
-    serializer = ScrollsSerializer
+    serializer = ScrollsSerializerGeneralUse
     result = serializer(scrolls)
     
     return Response(result.data, status=status.HTTP_200_OK)
+
+def get_scrolls_by_user(request, user_id):
+    if (request.method != 'GET'):
+        return Response({'message': 'wrong method call'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    try:
+        user = User.objects.get(id=user_id)
+
+        
+        if not user:
+            return Response({'message': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        scrolls = Scrolls.objects.get_scrolls_by_user(user.id).order_by('-created_at')
+        paginator = PageNumberPagination()
+        paginator.page_size = 1000
+        result_page = paginator.paginate_queryset(scrolls, request)
+        serializer = ScrollsSerializerGeneralUse(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except:
+        return Response({'message': 'argument missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 # provides a functional view that returns two serialized scrolls for given page number
 """

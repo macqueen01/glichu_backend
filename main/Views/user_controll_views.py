@@ -70,12 +70,8 @@ def login_user_with_token(request):
                 return Response({"message": "Token is invalid"},
                     status = status.HTTP_404_NOT_FOUND)
             else:
-                return Response(
-                    {"message": "User logged in", 
-                     "username": user.username,
-                     "profile_image": None,
-                     "user_id": user.id
-                    },
+                user = UserSerializerForScrolls(user)
+                return Response(user.data,
                     status = status.HTTP_200_OK)
         except:
             return Response({"message": "Token is invalid"},

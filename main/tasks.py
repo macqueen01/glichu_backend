@@ -1,3 +1,4 @@
+import json
 from celery import shared_task, result
 import ipfshttpclient
 
@@ -15,13 +16,29 @@ from mockingJae_back import settings
 from mockingJae_back.celery import app
 
 @shared_task
-def remix_to_video(json):
+def remix_to_video(remix_id):
+    # Model loading
 
-    timeline_json = json['timeline']['first']
-    title = json['title']
-    length = json['length']
-    scrolls = json['scrolls']
+    remix_model = apps.get_model(
+            app_label='main', model_name='Remix', require_ready=True)
+    
+    user_model = apps.get_model(
+            app_label='main', model_name='User', require_ready=True)
+    
+
+    remix_obj = remix_model.objects.get(id=remix_id)
+    parsed_json = json.loads(remix_obj.task_queue_json)
+
+    timeline_json = parsed_json['timeline']['first']
+    title = parsed_json['title']
+    length = parsed_json['length']
+    scrolls = parsed_json['scrolls']
     scrolls_id = int(scrolls.split('_')[0])
+    user_id = int(parsed_json['user'])
+    
+    # Parse the json into usable objects
+    
+    user = user_model.objects.get(id=user_id)
 
     timeline = IndexTimeline(
         timeline_json=timeline_json,
@@ -34,13 +51,11 @@ def remix_to_video(json):
         scrolls_id=scrolls_id,
     )
 
+
     output_path = os.path.join(
                 settings.MEDIA_ROOT, 
                 f'auto_recordings/{remix.get_scrolls().id}/{remix.get_title()}'
             )
-
-    remix_model = apps.get_model(
-            app_label='main', model_name='Remix', require_ready=True)
 
     # sort the files in the scrolls_dir and then create a list of files
 
@@ -69,7 +84,7 @@ def remix_to_video(json):
     files = download_files_from_s3(settings.s3_client, os.environ.get('AWS_STORAGE_BUCKET_NAME'), scrolls_dir, settings.TEMP_ROOT)
 
     # Now create ffmpegTemp in output_dir so that we can write the command on the file then refer it when ffmpeg task
-    ffmpegTemp = os.path.join(output_dir, 'ffmpegTemp.txt')
+    ffmpegTemp = os.path.join(output_dir, f'{title.split(".")[0]}ffmpegTemp.txt')
 
     current_timestamp = remix.get_timeline().sentinel
 
@@ -99,11 +114,11 @@ def remix_to_video(json):
     # removes the scrolls_dir from the temporary directory
     shutil.rmtree(f'{settings.TEMP_ROOT}/{scrolls_dir}')
 
-    remix_obj = remix_model.objects.create_remix(
-        title = remix_name, 
-        scrolls = remix.get_scrolls(),
-        remix_directory = output_path,
-        )
+    remix_obj.remix_directory = output_path
+    remix_obj.save()
+    
+    if not remix_model.objects.upload_remix(remix_obj.id):
+        return 'upload to s3 failed'
 
     return remix_obj.__str__()
 

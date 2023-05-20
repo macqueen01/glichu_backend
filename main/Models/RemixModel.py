@@ -20,24 +20,106 @@ class RemixManager(models.Manager):
 
     def create_remix(self, title, user, scrolls, remix_directory):
         remix = self.create(title=title, user=user, scrolls=scrolls, remix_directory=remix_directory)
+        
+        # Default permission is not private to only remix creator
+        permission = RemixPermission.objects.create(remix=remix)
+        permission.save()
+        
         return remix
     
     def get_all_remixes_of_user(self, user):
         return self.filter(user=user).all()
     
     def get_all_remixes_of_scrolls(self, scrolls_id):
-        return self.filter(scrolls=scrolls_id).all()
+        return self.filter(scrolls=scrolls_id)
     
-    def remix_to_video(output_path, remix):
-        if auto_recording_task := tasks.remix_to_video.delay(
-            output_path = output_path,
-            remix = remix
-        ):
-            return auto_recording_task.id
+    def get_thumbnail_url(self, remix_id):
+        
+        if not self.is_uploaded(remix_id):
+            return None
+        
+        remix = self.get(id=remix_id)
+        scrolls = remix.scrolls
+        scrolls_dir = scrolls.scrolls_dir
+
+        if scrolls_dir[-1] == '/':
+            scrolls_dir = scrolls_dir[:-1]
+
+        thumbnail_dir = f'{scrolls_dir}/1.jpeg'
+
+        return thumbnail_dir
+
+    def is_uploaded(self, remix_id):
+        remix = self.get(id=remix_id)
+
+        if remix and remix.uploaded_to_s3:
+            return True
+
         return False
     
+    def upload_remix(self, remix_id):
+        remix = self.get(id=remix_id)
 
-class RemixManager_DEBUG(models.Manager):
+        try:
+            if remix == None:
+                return False
+            
+            if self.is_uploaded(remix_id):
+                return False
+            
+            remix_directory = remix.remix_directory
+            scrolls_id = remix.scrolls.id
+            title = remix.title
+
+            new_directory = f'auto-recording/{scrolls_id}/{title}'
+
+            with open(remix_directory, 'rb') as f:
+                s3_storage.save(new_directory, f)
+                remix.uploaded_to_s3 = 1
+                remix.remix_directory = new_directory
+                remix.save()
+                os.remove(remix_directory)
+                return True
+        
+        
+        except:
+            return False
+        
+
+class RemixPermissionManager(models.Manager):
+
+    def give_remix_permission_to_scrolls_uploader(self, remix_id):
+        remix = Remix.objects.get(id=remix_id)
+
+        if (remix == None):
+            return None
+        
+        remix_permission = self.get(remix__id = remix_id)
+
+        if (remix_permission == None):
+            remix_permission = self.create(remix=remix, user_id=remix.scrolls.user.id, remix_uploader_has_access=1)
+        
+        remix_permission.scrolls_uploader_has_access = 1
+        remix_permission.save()
+        return remix_permission
+    
+    def give_remix_permission_to_all_users(self, remix_id):
+        remix = Remix.objects.get(id=remix_id)
+
+        if (remix == None):
+            return None
+        
+        remix_permission = self.get(remix__id = remix_id)
+
+        if (remix_permission == None):
+            remix_permission = self.create(remix=remix, all_users_have_access=1)
+
+        remix_permission.all_users_have_access = 1
+        remix_permission.save()
+        return remix_permission
+    
+
+class RemixManager_DEBUG(RemixManager):
 
     def create_remix(self, title, scrolls, remix_directory):
         user = User.objects.get(id=1)
@@ -45,13 +127,7 @@ class RemixManager_DEBUG(models.Manager):
         remix.save()
         return remix
     
-    def remix_to_video(output_path, remix):
-        if auto_recording_task := tasks.remix_to_video.delay(
-            output_path = output_path,
-            remix = remix
-        ):
-            return auto_recording_task.id
-        return False
+
 
 class Remix(models.Model):
     """
@@ -61,13 +137,33 @@ class Remix(models.Model):
     title = models.CharField(max_length=255)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     remix_directory = models.CharField(max_length=500, null=True, default='/')
+    uploaded_to_s3 = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     scrolls = models.ForeignKey('Scrolls', on_delete=models.CASCADE, null=True)
 
-    objects = RemixManager_DEBUG()
+    task_queue_json = models.TextField(null=True, default='{}')
+
+    objects = RemixManager()
 
     def __str__(self):
         return self.title
+    
+
+class RemixPermission(models.Model):
+    """
+    Remix permission model stores
+        - if scrolls uploader has access to the remix
+        - if remix uploader has let other viewers to have access to the remix 
+    """
+
+    remix = models.ForeignKey(Remix, on_delete=models.CASCADE)
+    scrolls_uploader_has_access = models.IntegerField(default=0)
+    all_users_have_access = models.IntegerField(default=0)
+
+    objects = RemixPermissionManager()
+
+    def __str__(self):
+        return self.remix.title
 
     
 
