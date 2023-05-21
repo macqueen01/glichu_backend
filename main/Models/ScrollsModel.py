@@ -153,7 +153,7 @@ class VideoMediaManager(models.Manager):
             with open(original_video_path, 'rb') as video:
                 file_data = video.read()
                 file_obj = BytesIO(file_data)
-                s3_path = s3_storage().save(f'videos/{media_id}.mp4', file_obj)
+                s3_path = s3_storage.save(f'videos/{media_id}.mp4', file_obj)
             original_video.url_preprocess = s3_path
             return encoding_task.id
         return False

@@ -1,3 +1,4 @@
+from io import BytesIO
 import json
 from celery import shared_task, result
 import ipfshttpclient
@@ -148,11 +149,20 @@ def convert(input, output, media_id):
 
     if media_id:
         # Saves the converted media path if media id is given.
+
+        with open(output, 'rb') as video:
+            file_data = video.read()
+            file_obj = BytesIO(file_data)
+            s3_path = settings.s3_storage.save(f'videos/{media_id}.mp4', file_obj)
+            s3_path = s3_path.split('?')[0]
+
         media_model = apps.get_model(
             app_label='main', model_name='VideoMedia', require_ready=True)
         media_object = media_model.objects.get(id__exact=media_id)
-        media_object.url_postprocess = output
+        media_object.url_postprocess = s3_path
         media_object.save()
+
+
 
     return media_id.__str__()
 
