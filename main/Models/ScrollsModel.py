@@ -151,7 +151,9 @@ class VideoMediaManager(models.Manager):
                 input=original_video_path, output=converted_video_path, media_id=media_id)
             # Task.objects.create_task(created_by=original_video.uploader, task_type='video_convert', task_id=encoding_task.id)
             with open(original_video_path, 'rb') as video:
-                s3_path = s3_storage().save(f'videos/{media_id}.mp4', video)
+                file_data = video.read()
+                file_obj = BytesIO(file_data)
+                s3_path = s3_storage().save(f'videos/{media_id}.mp4', file_obj)
             original_video.url_preprocess = s3_path
             return encoding_task.id
         return False
