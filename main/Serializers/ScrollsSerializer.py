@@ -97,6 +97,7 @@ class ScrollsSerializerForRemix(serializers.ModelSerializer):
 
 class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
+    video_url = serializers.CharField(max_length=400)
     created_by = UserSerializerForScrolls()
 
     def get_thumbnail_url(self, instance):
@@ -110,7 +111,8 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
             'scrolls_url',
             'scrolls_dir',
             'thumbnail_url',
-            'created_by'
+            'created_by',
+            'video_url'
         )
     
 

@@ -150,6 +150,9 @@ class VideoMediaManager(models.Manager):
             encoding_task = tasks.convert.delay(
                 input=original_video_path, output=converted_video_path, media_id=media_id)
             # Task.objects.create_task(created_by=original_video.uploader, task_type='video_convert', task_id=encoding_task.id)
+            with open(original_video_path, 'rb') as video:
+                s3_path = s3_storage().save(f'videos/{media_id}.mp4', video)
+            original_video.url_preprocess = s3_path
             return encoding_task.id
         return False
 
@@ -178,6 +181,7 @@ class VideoMediaManager(models.Manager):
 
 
         scrolls.scrolls_dir = scrolls_path
+        scrolls.video_url = media.url_preprocess
         scrolls.save()
             
         if wait:
@@ -597,6 +601,7 @@ class Scrolls(models.Model):
     ipfs_hash = models.CharField(max_length=100, default="")
     scrolls_url = models.CharField(max_length=400, default="")
     scrolls_dir = models.CharField(max_length=200, default='/')
+    video_url = models.CharField(max_length=400, default="/")
 
     audios = models.ManyToManyField(to=AudioModel, related_name="used_in", null = True)
 
