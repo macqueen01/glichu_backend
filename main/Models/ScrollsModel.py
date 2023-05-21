@@ -150,11 +150,7 @@ class VideoMediaManager(models.Manager):
             encoding_task = tasks.convert.delay(
                 input=original_video_path, output=converted_video_path, media_id=media_id)
             # Task.objects.create_task(created_by=original_video.uploader, task_type='video_convert', task_id=encoding_task.id)
-            with open(original_video_path, 'rb') as video:
-                file_data = video.read()
-                file_obj = BytesIO(file_data)
-                s3_path = s3_storage().save(f'videos/{media_id}.mp4', file_obj)
-            original_video.url_preprocess = s3_path
+            original_video.save()
             return encoding_task.id
         return False
 
@@ -183,7 +179,7 @@ class VideoMediaManager(models.Manager):
 
 
         scrolls.scrolls_dir = scrolls_path
-        scrolls.video_url = media.url_preprocess
+        scrolls.video_url = media.public_url
         scrolls.save()
             
         if wait:
@@ -310,8 +306,9 @@ class ScrollsManager(models.Manager):
                 scrolls_to_be_uploaded.save()
             
             # uploads raw folder to s3 then deletes the local folder
-            self.upload_raw_then_delete_original(scrolls_id)
-
+            s3_path = self.upload_raw_then_delete_original(scrolls_id)
+            
+            scrolls_to_be_uploaded.scrolls_dir = s3_path
             scrolls_to_be_uploaded.uploaded = 1
             scrolls_to_be_uploaded.save()
 
@@ -366,7 +363,7 @@ class ScrollsManager(models.Manager):
         scrolls.scrolls_dir = s3_path
         scrolls.save()
 
-        return None
+        return s3_path
 
 
     def upload_directory_to_s3(self, path):
@@ -548,6 +545,7 @@ class HistoryManager(models.Manager):
 class VideoMedia(models.Model):
     url_preprocess = models.FileField(
         upload_to='archive/video/%Y%m%d', default="")
+    public_url = models.CharField(max_length=400, null = True, default = '/')
     url_postprocess = models.TextField(default="", null=True)
     uploader = models.ForeignKey(to=User, on_delete=models.SET_NULL,
                                  default=None, related_name="uploaded_video", null=True)
