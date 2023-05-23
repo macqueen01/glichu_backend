@@ -90,6 +90,8 @@ def upload_auto_recording(request):
             )
 
             new_remix.task_queue_json = json.dumps(parsed_request)
+            Scrolls.objects.increase_scrolled(scrolls.id)
+            
             new_remix.save()
 
             if task := tasks.remix_to_video.delay(remix_id=new_remix.id):

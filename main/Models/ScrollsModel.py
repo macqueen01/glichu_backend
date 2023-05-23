@@ -433,6 +433,21 @@ class ScrollsManager(models.Manager):
             return False
 
         return True
+    
+    def increase_scrolled(self, scrolls_id):
+        """
+        Increases the scrolled count by 1.
+        """
+
+        scrolls = self.get_scrolls_from_id(scrolls_id)
+
+        if not scrolls:
+            return False
+        
+        scrolls.scrolled += 1
+        scrolls.save()
+
+        return True
 
 
 
@@ -592,9 +607,6 @@ class Scrolls(models.Model):
     original = models.ForeignKey(
         to=VideoMedia, on_delete=models.SET_NULL, default=None, null=True)
     tags = models.ManyToManyField(to=Tag, related_name="mentioned_in")
-    liked_by = models.ManyToManyField(to=User, related_name="likes")
-    height = models.IntegerField(default=0)
-    length = models.IntegerField(default=0)
     uploaded = models.IntegerField(default=0)
     # Hash of ipfs if uploaded as a folder
     # This could be empty if scrolls is uploaded as a cell
@@ -602,6 +614,14 @@ class Scrolls(models.Model):
     scrolls_url = models.CharField(max_length=400, default="")
     scrolls_dir = models.CharField(max_length=200, default='/')
     video_url = models.CharField(max_length=400, default="/")
+
+    # Statistics
+    scrolled = models.IntegerField(default=0)
+    liked_by = models.ManyToManyField(to=User, related_name="likes")
+    shared_by = models.ManyToManyField(to=User, related_name="shares", null = True)
+    saved_by = models.ManyToManyField(to=User, related_name="saves", null = True)
+    height = models.IntegerField(default=0)
+    length = models.IntegerField(default=0)
 
     audios = models.ManyToManyField(to=AudioModel, related_name="used_in", null = True)
 

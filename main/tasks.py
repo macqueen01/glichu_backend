@@ -117,6 +117,7 @@ def remix_to_video(remix_id):
     shutil.rmtree(f'{settings.TEMP_ROOT}/{scrolls_dir}')
 
     remix_obj.remix_directory = output_path
+    remix_obj.length = remix.get_timeline().length
     remix_obj.save()
     
     if not remix_model.objects.upload_remix(remix_obj.id):
