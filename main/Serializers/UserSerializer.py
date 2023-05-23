@@ -56,6 +56,7 @@ class UserSerializerForScrolls(serializers.ModelSerializer):
 
 class UserSerializerGeneralUse(serializers.ModelSerializer):
     profile_image = serializers.ImageField(use_url=True)
+    
 
     class Meta:
         model = User
