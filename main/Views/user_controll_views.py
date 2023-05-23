@@ -1,10 +1,16 @@
 from django.utils import timezone
+import requests
+
+from knox.models import AuthToken
+from knox.settings import CONSTANTS
 
 from rest_framework.response import Response
 from rest_framework import status, exceptions
+from main.Views.authentications import authenticate_then_user_or_unauthorized_error, get_user_from_token
 
 from main.models import Scrolls, User, Recommendation
 from main.serializer import *
+
 
 
 def is_duplicate_user(request):
@@ -33,21 +39,27 @@ def is_duplicate_user(request):
             status=status.HTTP_400_BAD_REQUEST)
 
 
-from knox.models import AuthToken
-from knox.settings import CONSTANTS
-import requests
 
-from rest_framework.response import Response
-from rest_framework import status, exceptions
+def reset_profile_image(request):
 
-from main.Models.UserModel import User
+    user = authenticate_then_user_or_unauthorized_error(request)
 
+    if user is None:
+        return Response({'message': 'user is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if request.method == 'POST':
 
-def get_user_from_token(token):
-    objs = AuthToken.objects.filter(token_key=token[:CONSTANTS.TOKEN_KEY_LENGTH])
-    if len(objs) == 0:
-        return None
-    return objs.first().user
+        try:
+            profile_image = request['profile_image']
+            user.profile_image = profile_image
+            user.save()
+            return Response({'message': 'profile image is updated'}, status=status.HTTP_200_OK)
+        except:
+            return Response({'message': 'profile image is missing'}, status=status.HTTP_404_NOT_FOUND)
+        
+    return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            
+
 
 def logout_user(request):
     _, token = request.META.get('HTTP_AUTHORIZATION').split(' ')
@@ -130,6 +142,7 @@ def create_user(request):
         try: 
             username = request.data['username']
             social_login_type = request.data['social_login_type']
+            profile_image = request.data['profile_image']
             client_ip = request.META.get("REMOTE_ADDR")
             
             if User.objects.filter(username=request.data['username']).exists():
@@ -160,6 +173,8 @@ def create_user(request):
             else:
                 return Response({'message': "wrong social login type"}, status = status.HTTP_400_BAD_REQUEST)
 
+            if (profile_image != None):
+                user.profile_image = profile_image
 
             user.client_ip = client_ip
             user.save()
@@ -183,6 +198,3 @@ def create_user(request):
 def check_duplicate_devices(request):
     pass
 
-
-
-            

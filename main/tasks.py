@@ -15,6 +15,7 @@ from main.BusinessLogics.Scrolls.timelines import Remix as RemixInMemory
 from mockingJae_back.storages import download_files_from_s3
 from mockingJae_back import settings
 from mockingJae_back.celery import app
+from io import BytesIO
 
 @shared_task
 def remix_to_video(remix_id):
@@ -116,6 +117,7 @@ def remix_to_video(remix_id):
     shutil.rmtree(f'{settings.TEMP_ROOT}/{scrolls_dir}')
 
     remix_obj.remix_directory = output_path
+    remix_obj.length = remix.get_timeline().length
     remix_obj.save()
     
     if not remix_model.objects.upload_remix(remix_obj.id):
@@ -150,16 +152,19 @@ def convert(input, output, media_id):
     if media_id:
         # Saves the converted media path if media id is given.
 
+        media_model = apps.get_model(
+            app_label='main', model_name='VideoMedia', require_ready=True)
+        media_object = media_model.objects.get(id__exact=media_id)
+
+
         with open(output, 'rb') as video:
             file_data = video.read()
             file_obj = BytesIO(file_data)
             s3_path = settings.s3_storage.save(f'videos/{media_id}.mp4', file_obj)
             s3_path = s3_path.split('?')[0]
 
-        media_model = apps.get_model(
-            app_label='main', model_name='VideoMedia', require_ready=True)
-        media_object = media_model.objects.get(id__exact=media_id)
-        media_object.url_postprocess = s3_path
+        media_object.public_url = s3_path
+        media_object.url_postprocess = output
         media_object.save()
 
 

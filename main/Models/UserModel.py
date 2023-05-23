@@ -72,6 +72,56 @@ class UserManager(BaseUserManager):
             return user.get()
         return False
         
+    def follow_user_from_id(self, user_id, target_user_id):
+        if (user := self.get_user_from_id(user_id)) and (target_user := self.get_user_from_id(target_user_id)):
+            user.followers.add(target_user)
+            return True
+        return False
+
+    def unfollow_user_from_id(self, user_id, target_user_id):
+        if (user := self.get_user_from_id(user_id)) and (target_user := self.get_user_from_id(target_user_id)):
+            user.followers.remove(target_user)
+            return True
+        return False
+    
+    def undirected_follow(self, user_id, target_user_id):
+        if (user := self.get_user_from_id(user_id)) and (target_user := self.get_user_from_id(target_user_id)):
+            user.followers.add(target_user)
+            target_user.followers.add(user)
+            return True
+        return False
+    
+    def undirected_unfollow(self, user_id, target_user_id):
+        if (user := self.get_user_from_id(user_id)) and (target_user := self.get_user_from_id(target_user_id)):
+            user.followers.remove(target_user)
+            target_user.followers.remove(user)
+            return True
+        return False
+    
+    def get_followers(self, user_id):
+        # return followers except for user_id
+        if (user := self.get_user_from_id(user_id)):
+            return user.followers.all()
+        return False
+    
+    def get_followings(self, user_id):
+        # return followings except for user_id
+        if (user := self.get_user_from_id(user_id)):
+            return user.followings.all()
+        return False
+    
+    def get_followers_count(self, user_id):
+        if (user := self.get_user_from_id(user_id)):
+            return user.followers.count()
+        return False
+    
+    def get_followings_count(self, user_id):
+        if (user := self.get_user_from_id(user_id)):
+            return user.followings.count()
+        return False
+    
+    
+    
     
 class User(AbstractBaseUser):
     password = models.CharField(max_length = 128, null = True)

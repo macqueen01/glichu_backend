@@ -112,7 +112,9 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
             'scrolls_dir',
             'thumbnail_url',
             'created_by',
-            'video_url'
+            'created_at',
+            'video_url',
+            'scrolled'
         )
     
 

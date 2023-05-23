@@ -142,6 +142,7 @@ class Remix(models.Model):
     scrolls = models.ForeignKey('Scrolls', on_delete=models.CASCADE, null=True)
 
     task_queue_json = models.TextField(null=True, default='{}')
+    length = models.IntegerField(null=True, default=0)
 
     objects = RemixManager()
 

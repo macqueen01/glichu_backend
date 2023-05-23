@@ -17,6 +17,9 @@ import boto3
 
 from .storages import LocalStorage, S3Storage
 
+# maybe in only local device
+import pymysql
+
 # Load environment variables
 load_dotenv()
 
@@ -98,6 +101,9 @@ WSGI_APPLICATION = 'mockingJae_back.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
+
+pymysql.install_as_MySQLdb()
+
 
 DATABASES = {
     'default': {
