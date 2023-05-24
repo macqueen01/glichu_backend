@@ -17,7 +17,8 @@ from django.urls import path, include
 from main.views import scrolls_browse, scrolls_of_user, \
     video_upload, scrollify_video, scrolls_upload, \
     task_status, random_scrolls, auto_recording_upload, auto_recording_from_scrolls, is_duplicate_user, \
-    user_login, user_join, user_logout, user_login_with_token
+    user_login, user_join, user_logout, user_login_with_token, \
+    get_followings, get_followers
 
 urlpatterns = [
     path('browse/', random_scrolls),
@@ -33,5 +34,8 @@ urlpatterns = [
     path('auth/login', user_login),
     path('auth/join', user_join),
     path('auth/logout', user_logout),
+
+    path('user/following', get_followings),
+    path('user/follower', get_followers),
 
 ]

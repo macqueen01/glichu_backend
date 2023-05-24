@@ -8,6 +8,8 @@ from main.models import Scrolls, User
 from main.serializer import *
 from main import tasks
 
+from main.Views.authentications import authenticate_then_user_or_unauthorized_error
+
 def task_status(request):
     try:
         if request.method == 'POST':
@@ -38,6 +40,9 @@ def upload_video(request):
     convertion task id. This does not garauntees the
     success of the video conversion.
     """
+    
+    user = authenticate_then_user_or_unauthorized_error(request)
+
     try:
         if request.method == 'POST':
 
@@ -46,7 +51,7 @@ def upload_video(request):
             unprocessed_video = request.data['video_to_upload']
             title = request.data['title'].split('.')[0]
             # only in production!
-            user_id = 1
+            user_id = user.id
             # in production,
             # user_id = user_id from token
 

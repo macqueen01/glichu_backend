@@ -49,11 +49,10 @@ def get_followers(request, user_id):
     
     try:
         followers = User.objects.get_followers(user_id).order_by('username')
-        serializer = UserSerializer(followers, many=True)
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(followers, request)
-        serializer = UserSerializerGeneralUse(result_page, many=True)
+        serializer = UserSerializerWithFollowingRelations(result_page, context={'user': user}, many=True)
         return paginator.get_paginated_response(serializer.data)
     except:
         return Response({'message': 'argument missing'}, status=status.HTTP_400_BAD_REQUEST)
@@ -69,7 +68,7 @@ def get_followings(request, user_id):
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(followings, request)
-        serializer = UserSerializerGeneralUse(result_page, many=True)
+        serializer = UserSerializerWithFollowingRelations(result_page, context={'user': user}, many=True)
         return paginator.get_paginated_response(serializer.data)
     except:
         return Response({'message': 'argument missing'}, status=status.HTTP_400_BAD_REQUEST)

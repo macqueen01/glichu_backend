@@ -66,6 +66,29 @@ class UserSerializerGeneralUse(serializers.ModelSerializer):
             "profile_image"
         )
 
+class UserSerializerWithFollowingRelations(serializers.ModelSerializer):
+    is_followed_by_user = serializers.SerializerMethodField()
+    is_following_user = serializers.SerializerMethodField()
+    profile_image = serializers.ImageField(use_url=True)
+    
+    def get_is_followed_by_user(self, obj):
+        user = self.context.get("user")
+        return obj.followers.filter(pk=user.id).exists()
+
+    def get_is_following_user(self, obj):
+        user = self.context.get("user")
+        return obj.followings.filter(pk=user.id).exists()
+    
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "username",
+            "profile_image",
+            "is_followed_by_user",
+            "is_following_user"
+        )
+
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()

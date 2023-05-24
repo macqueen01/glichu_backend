@@ -20,6 +20,6 @@ from django.core.files.storage import FileSystemStorage
 class Voice(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=timezone.now)
-    voice_content = models.TextField(max_length=20)
+    content = models.TextField(max_length=20)
     addressing_scrolls = models.ForeignKey('Scrolls', on_delete=models.CASCADE, null=True)
     

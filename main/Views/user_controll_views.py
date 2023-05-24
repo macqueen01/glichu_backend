@@ -139,11 +139,11 @@ def login_user(request):
 
 def create_user(request):
     if request.method == 'POST':
-        try: 
+        try:
             username = request.data['username']
             social_login_type = request.data['social_login_type']
             profile_image = request.data['profile_image']
-            client_ip = request.META.get("REMOTE_ADDR")
+
             
             if User.objects.filter(username=request.data['username']).exists():
                 message = {'message': "duplicate user"}
@@ -159,12 +159,13 @@ def create_user(request):
                     return Response({'error': 'Invalid access token'}, status = status.HTTP_400_BAD_REQUEST)
                 
                 instagram_id = data['id']
+                instagram_username = data['username']
 
                 # check if user with same instagram_id exists
                 if (User.objects.filter(instagram_id=instagram_id).exists()):
                     return Response({'message': "duplicate user"}, status = status.HTTP_400_BAD_REQUEST)
 
-                user = User.objects.create_user_with_instagram_id(username, instagram_id)
+                user = User.objects.create_user_with_instagram_id(username, instagram_id, instagram_username)
 
             elif social_login_type == 'apple':
                 # TODO: need to implement social login case for apple
@@ -176,7 +177,6 @@ def create_user(request):
             if (profile_image != None):
                 user.profile_image = profile_image
 
-            user.client_ip = client_ip
             user.save()
 
 

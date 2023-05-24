@@ -2,7 +2,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 
-from main.Views import browse_scrolls, post_scrolls, auto_recording, user_controll_views
+from main.Views import browse_scrolls, post_scrolls, \
+    auto_recording, user_controll_views, social_activities
 
 @api_view(['GET'])
 def scrolls_browse(request):
@@ -74,5 +75,18 @@ def user_join(request):
 @api_view(['POST'])
 def user_logout(request):
     return user_controll_views.logout_user(request)
+
+
+# Social Interactions
+
+@api_view(['GET'])
+def get_followers(request):
+    user_id = int(request.query_params['id'])
+    return social_activities.get_followers(request, user_id)
+
+@api_view(['GET'])
+def get_followings(request):
+    user_id = int(request.query_params['id'])
+    return social_activities.get_followings(request, user_id)
     
 
