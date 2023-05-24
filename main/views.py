@@ -88,5 +88,10 @@ def get_followers(request):
 def get_followings(request):
     user_id = int(request.query_params['id'])
     return social_activities.get_followings(request, user_id)
+
+@api_view(['GET'])
+def get_user(request):
+    user_id = int(request.query_params['id'])
+    return social_activities.get_user(request, user_id)
     
 

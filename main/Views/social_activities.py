@@ -13,6 +13,21 @@ from main.models import Scrolls, User, Recommendation
 from main.serializer import *
 
 
+def get_user(request, user_id):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if request.method != 'GET':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    target_user = User.objects.get_user_from_id(user_id)
+
+    if (target_user is None):
+        return Response({'message': 'user is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    serializer = UserSerializerWithFollowingRelations(target_user)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 def follow(request):
     user = authenticate_then_user_or_unauthorized_error(request)
 
