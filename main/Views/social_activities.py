@@ -24,7 +24,7 @@ def get_user(request, user_id):
     if (target_user is None):
         return Response({'message': 'user is invalid'}, status=status.HTTP_400_BAD_REQUEST)
     
-    serializer = UserSerializerWithFollowingRelations(target_user)
+    serializer = UserSerializerWithFollowingRelations(target_user, context={'user': user})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
