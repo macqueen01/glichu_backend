@@ -1,3 +1,9 @@
+import time
+import jwt
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+
+
 from django.utils import timezone
 import requests
 
@@ -91,6 +97,59 @@ def login_user_with_token(request):
     return Response({'message': "wrong method call"}, status = status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
+
+def _apple_social_authenticate_then_return_user_id(request):
+    # Retrieve data from the request
+    authentication_code = request.data['authorization_code']
+    user_identifier = request.data['user_identifier']
+    identity_token = request.data['access_token']
+
+    # Generate the client_secret
+    client_id = os.environ.get('CLIENT_ID')
+    team_id = os.environ.get('TEAM_ID')
+    key_id = os.environ.get('KEY_ID')
+    private_key = settings.APPLE_PRIVATE_KEY
+
+
+    headers = {
+        'kid': key_id,
+        'alg': 'ES256',
+    }
+
+    payload = {
+        'iss': team_id,
+        'iat': int(time.time()),
+        'exp': int(time.time() + 8640),  # Expiration time in seconds (180 days in this example)
+        'aud': 'https://appleid.apple.com',
+        'sub': client_id,
+    }
+
+    client_secret = jwt.encode(payload=payload, key=private_key, algorithm='ES256', headers=headers)
+
+    # Send a request to Apple's token endpoint to exchange the authentication code for tokens
+    apple_token_url = 'https://appleid.apple.com/auth/token'
+    data = {
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'code': authentication_code,
+        'grant_type': 'authorization_code',
+    }
+    response = requests.post(apple_token_url, data=data)
+
+    if response.status_code != status.HTTP_200_OK:
+        return Response({'error': 'Failed to authenticate with Apple'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    # Extract the access token and verify the identity token
+    fetched_id_token = response.json().get('id_token')
+    fetched_user_identifier = jwt.decode(fetched_id_token, options={'verify_signature': False}).get('sub')
+
+    # Check if the user identifier matches the Apple user ID
+    if user_identifier != fetched_user_identifier:
+        return False
+
+
+    return user_identifier
+
 def login_user(request):
     if request.method == 'POST':
         try: 
@@ -115,7 +174,15 @@ def login_user(request):
 
             elif social_login_type == 'apple':
                 # TODO: need to implement social login case for apple
-                pass
+                user_id = _apple_social_authenticate_then_return_user_id(request)
+
+                if not user_id:
+                    return Response({'message': 'invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+                
+                if not User.objects.filter(apple_id = user_id).exists():
+                    return Response({'message': 'user is not registered'}, status=status.HTTP_404_NOT_FOUND)
+                
+                user = User.objects.get(apple_id=user_id)
             
             else:
                 return Response({'message': "wrong social login type"}, status = status.HTTP_400_BAD_REQUEST)
@@ -169,7 +236,16 @@ def create_user(request):
 
             elif social_login_type == 'apple':
                 # TODO: need to implement social login case for apple
-                pass
+                user_id = _apple_social_authenticate_then_return_user_id(request)
+
+                if not user_id:
+                    return Response({'message': 'invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+                
+                if User.objects.filter(apple_id = user_id).exists():
+                    return Response({'message': 'duplicate user'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+                
+                user = User.objects.create_user_with_apple_id(username, user_id)
+                print(user.apple_id)
             
             else:
                 return Response({'message': "wrong social login type"}, status = status.HTTP_400_BAD_REQUEST)

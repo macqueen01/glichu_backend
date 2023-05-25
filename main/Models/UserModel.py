@@ -35,7 +35,7 @@ class UserManager(BaseUserManager):
         user.save(using = self._db)
         return user
 
-    def create_user_with_apple_id(self, username, apple_id, apple_username):
+    def create_user_with_apple_id(self, username, apple_id):
         user = self.model(
             username = username,
             created_at = timezone.now(),
@@ -43,7 +43,6 @@ class UserManager(BaseUserManager):
             is_superuser = 0,
             is_active = 0,
             apple_id = apple_id,
-            apple_username = apple_username
         )
 
         user.save(using = self._db)
