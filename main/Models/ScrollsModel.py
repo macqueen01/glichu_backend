@@ -190,6 +190,21 @@ class VideoMediaManager(models.Manager):
             return scrollify_task.id
             
         return False
+    
+    def mp4_to_scrolls_without_scrollify(self, media_id, scrolls_id):
+        scrolls = Scrolls.objects.get_scrolls_from_id(scrolls_id)
+
+        if not self.is_media_converted(media_id):
+            return False
+
+        if not scrolls:
+            return False
+
+        media = self.get_video_from_id(media_id)
+        scrolls.video_url = media.public_url
+        scrolls.save()
+            
+        return scrolls
 
 
 class ScrollsManager(models.Manager):
@@ -607,7 +622,7 @@ class Scrolls(models.Model):
     original = models.ForeignKey(
         to=VideoMedia, on_delete=models.SET_NULL, default=None, null=True)
     tags = models.ManyToManyField(to=Tag, related_name="mentioned_in")
-    uploaded = models.IntegerField(default=0)
+    uploaded = models.IntegerField(default=1)
     # Hash of ipfs if uploaded as a folder
     # This could be empty if scrolls is uploaded as a cell
     ipfs_hash = models.CharField(max_length=100, default="")

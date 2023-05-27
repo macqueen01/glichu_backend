@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.urls import path, include
 from main.views import scrolls_browse, scrolls_of_user, \
-    video_upload, scrollify_video, scrolls_upload, \
+    video_upload, scrollify_video_depricated, scrolls_upload, \
     task_status, random_scrolls, auto_recording_upload, auto_recording_from_scrolls, is_duplicate_user, \
     user_login, user_join, user_logout, user_login_with_token, \
     get_followings, get_followers, get_user
@@ -24,17 +24,24 @@ urlpatterns = [
     path('browse/', random_scrolls),
     path('browse/user', scrolls_of_user),
     path('upload/video', video_upload),
-    path('upload/scrollify', scrollify_video),
+    path('upload/scrollify', scrollify_video_depricated),
     path('upload/post', scrolls_upload),
+
+    # auto recordings
     path('auto-recording/upload', auto_recording_upload),
     path('auto-recording/browse', auto_recording_from_scrolls),
+
+    # task query
     path('upload/task', task_status),
+
+    # authentications
     path('auth/user-exists', is_duplicate_user),
     path('auth/login/token', user_login_with_token),
     path('auth/login', user_login),
     path('auth/join', user_join),
     path('auth/logout', user_logout),
 
+    # user
     path('user/', get_user),
     path('user/following', get_followings),
     path('user/follower', get_followers),

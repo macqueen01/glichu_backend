@@ -22,7 +22,8 @@ def get_auto_recording_from_scrolls(request,
                                     scrolls_id, 
                                     by_recent = True, 
                                     by_most_scrolled = False, 
-                                    by_followers=False
+                                    by_followers=False,
+                                    mp4 = True
                                     ):
     if (request.method == 'GET'):
 
@@ -33,8 +34,12 @@ def get_auto_recording_from_scrolls(request,
             return Response({'message': 'scrolls not found'},
                 status=status.HTTP_404_NOT_FOUND)
         
-
-        browse_cases = Remix.objects.filter(uploaded_to_s3__exact = 1).filter(scrolls__pk = scrolls.id)
+        if mp4:
+            browse_cases = Remix.objects.filter(uploaded_to_s3__exact = 1).filter(scrolls__pk = scrolls.id)
+            serializer = RemixViewSerializer
+        else:
+            browse_cases = Remix.objects.filter(scrolls__pk = scrolls.id)
+            serializer = RemixViewSerializerWithRawJson
 
 
         if by_most_scrolled:
@@ -50,14 +55,62 @@ def get_auto_recording_from_scrolls(request,
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(browse_cases, request)
-        serializer = RemixViewSerializer(result_page, many=True)
+        serializer = serializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)
     
     return Response({'message': "wrong method call"}, 
         status = status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-def upload_auto_recording(request):
+def upload_auto_recording_as_mp4(request):
+    return _upload_auto_recording(request)
+
+def upload_auto_recording_as_raw_text(request):
+    try:
+        if request.method == 'POST':
+            
+            assert(request.data['timeline'] and 
+                   request.data['title'] and 
+                   request.data['length'] and
+                   request.data['scrolls'] and
+                   request.data['token'])
+            
+            user = get_user_from_token(request.data['token'])
+            scrolls = Scrolls.objects.get(id=int(request.data['scrolls'].split('_')[0]))
+
+            if not user:
+                return Response({'message': 'invalid token'},
+                    status=status.HTTP_401_UNAUTHORIZED)
+            
+            parsed_request = {
+                'timeline': request.data['timeline'],
+                'title': request.data['title'],
+                'length': request.data['length'],
+                'scrolls': request.data['scrolls'],
+                'user': user.id
+            }
+
+            new_remix = Remix.objects.create_remix(
+                title=request.data['title'],
+                scrolls=scrolls,
+                remix_directory='/',
+                user=user,
+            )
+
+            new_remix.task_queue_json = json.dumps(parsed_request)
+            Scrolls.objects.increase_scrolled(scrolls.id)
+            
+            new_remix.save()
+                
+            return Response({'message': 'remix upload as raw json successfull'},
+                status=status.HTTP_200_OK)
+
+    except:
+        return Response({'message': 'argument missing'}, 
+            status=status.HTTP_400_BAD_REQUEST)
+
+
+def _upload_auto_recording(request):
     try:
         if request.method == 'POST':
             

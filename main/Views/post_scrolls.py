@@ -50,6 +50,7 @@ def upload_video(request):
 
             unprocessed_video = request.data['video_to_upload']
             title = request.data['title'].split('.')[0]
+
             # only in production!
             user_id = user.id
             # in production,
@@ -74,6 +75,51 @@ def upload_video(request):
     except:
         return Response({'message': 'argument missing'}, 
             status=status.HTTP_400_BAD_REQUEST)
+    
+
+def scrolls_upload_without_scrollify(request):
+    """
+    If called in the right order, this method should have been called
+    after the upload_video method.
+    """
+
+    try:
+        task_id = request.data['task_id']
+        title = request.data['title']
+        height = request.data['height']
+        media_id = tasks.get_result_from_task_id(task_id)
+
+        if tasks.task_status(task_id) in [3,4]:
+            return Response({'message': 'task is being run or waiting inside the queue'},
+                status=status.HTTP_102_PROCESSING)
+
+        if not media_id:
+            VideoMedia.objects.delete(media_id)
+            return Response({'message': 'error occured in conversion process, try uploading again'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        scrolls_object = Scrolls.objects.create(media_id=media_id, title=title, height=height)
+        
+        if not scrolls_object:
+            return Response({'message': 'media object does not exist, possibly deleted'},
+                status=status.HTTP_404_NOT_FOUND)
+        
+        if scrolls := VideoMedia.objects.mp4_to_scrolls_without_scrollify(media_id=media_id, scrolls_id=scrolls_object.id):
+            return Response({'message': 'scrolls uploaded successfully', 'scrolls_id': scrolls.id},
+                status=status.HTTP_200_OK)
+
+        # This deletes not only the scrolls but also related VideoMedia too.
+        # Users have to re-upload from the begining when they reach here.
+        Scrolls.objects.delete(scrolls_object.id)
+        
+        return Response({'message': 'scrolls upload process was unsuccessfull, try uploading again'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    except:
+        return Response({'message': 'argument missing'}, 
+            status=status.HTTP_400_BAD_REQUEST)
+
+
 
     
 def scrollify_video(request):

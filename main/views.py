@@ -23,6 +23,13 @@ def random_scrolls(request):
 @api_view(['GET'])
 def auto_recording_from_scrolls(request):
     scrolls_id = int(request.query_params['id'])
+    is_mp4 = request.query_params['mp4']
+
+    if is_mp4 == 'true' or is_mp4 == 'True':
+        is_mp4 = True
+    else:
+        is_mp4 = False
+
     by_recent, by_most_scrolled, by_followers = False, False, False
     if (request.query_params.keys().__contains__('recent')):
         by_recent = True
@@ -31,23 +38,25 @@ def auto_recording_from_scrolls(request):
     elif (request.query_params.keys().__contains__('followers')):
         by_followers = True
 
-    return auto_recording.get_auto_recording_from_scrolls(request, scrolls_id, by_recent, by_most_scrolled, by_followers)
+
+    return auto_recording.get_auto_recording_from_scrolls(request, scrolls_id, by_recent, by_most_scrolled, by_followers, mp4=is_mp4)
 
 @api_view(['POST'])
 def video_upload(request):
     return post_scrolls.upload_video(request)
 
 @api_view(['POST'])
-def scrollify_video(request):
-    return post_scrolls.scrollify_video(request)
-
-@api_view(['POST'])
 def scrolls_upload(request):
-    return post_scrolls.upload_scrolls(request)
+    return post_scrolls.scrolls_upload_without_scrollify(request)
+
 
 @api_view(['POST'])
 def auto_recording_upload(request):
-    return auto_recording.upload_auto_recording(request)
+    return auto_recording.upload_auto_recording_as_raw_text(request)
+
+@api_view(['POST'])
+def auto_recording_mp4(request):
+    return auto_recording.upload_auto_recording_as_mp4(request)
 
 @api_view(['POST'])
 def task_status(request):
@@ -95,3 +104,12 @@ def get_user(request):
     return social_activities.get_user(request, user_id)
     
 
+# DEPRICATED APIS
+
+@api_view(['POST'])
+def scrollify_video_depricated(request):
+    return post_scrolls.scrollify_video(request)
+
+@api_view(['POST'])
+def scrolls_upload_depricated(request):
+    return post_scrolls.upload_scrolls(request)

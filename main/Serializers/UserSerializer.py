@@ -90,6 +90,44 @@ class UserSerializerWithFollowingRelations(serializers.ModelSerializer):
         )
 
 
+class UserSerializerForSelfProfile(serializers.ModelSerializer):
+    profile_image = serializers.ImageField(use_url=True)
+    num_followers = serializers.SerializerMethodField()
+    num_followings = serializers.SerializerMethodField()
+    num_scrolls_uploaded = serializers.SerializerMethodField()
+    num_scrolls_scrolled = serializers.SerializerMethodField()
+    num_remix_produced = serializers.SerializerMethodField()
+    tagged_by = serializers.SerializerMethodField()
+
+    def get_num_followers(self, obj):
+        return len(obj.followings.all()) - 1
+    
+    def get_num_followings(self, obj):
+        return len(obj.followings.all()) - 1
+    
+    def get_num_scrolls_uploaded(self, obj):
+        return len(obj.uploaded_scrolls.exclude(video_url = '/'))
+    
+    """
+    def get_num_scrolls_scrolled(self, obj):
+        for scrolls in obj.uploaded_scrolls
+    """
+    
+    def get_num_remix_produced(self, obj):
+        return len(obj.remix_set.all())
+    
+    def get_tagged_by(self, obj):
+        tagger = obj.tagger
+
+        if (tagger == None):
+            return 'Tagger not found'
+        
+        return tagger.username
+    
+
+
+
+
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
