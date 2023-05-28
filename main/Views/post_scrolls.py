@@ -46,9 +46,14 @@ def upload_video(request):
     try:
         if request.method == 'POST':
 
-            assert(request.data['video_to_upload'] and request.data['title'])
+            assert(
+                request.data['video_to_upload'] and 
+                request.data['thumbnail'] and 
+                request.data['title']
+            )
 
             unprocessed_video = request.data['video_to_upload']
+            thumbnail_image = request.data['thumbnail']
             title = request.data['title'].split('.')[0]
 
             # only in production!
@@ -57,7 +62,7 @@ def upload_video(request):
             # user_id = user_id from token
 
 
-            video = VideoMedia.objects.create(video=unprocessed_video, title=title, user_id=user_id)
+            video = VideoMedia.objects.create(video=unprocessed_video, title=title, user_id=user_id, thumbnail = thumbnail_image)
 
             if not video:
                 return Response({'message': 'error occured during video uploading'},

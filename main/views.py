@@ -85,6 +85,10 @@ def user_join(request):
 def user_logout(request):
     return user_controll_views.logout_user(request)
 
+@api_view(['GET'])
+def self_profile(request):
+    return user_controll_views.user_fetch(request)
+
 
 # Social Interactions
 

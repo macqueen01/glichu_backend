@@ -108,10 +108,13 @@ class UserSerializerForSelfProfile(serializers.ModelSerializer):
     def get_num_scrolls_uploaded(self, obj):
         return len(obj.uploaded_scrolls.exclude(video_url = '/'))
     
-    """
+    
     def get_num_scrolls_scrolled(self, obj):
-        for scrolls in obj.uploaded_scrolls
-    """
+        total_scrolled = 0
+        for scrolls in obj.uploaded_scrolls.exclude(video_url = '/'):
+            total_scrolled += scrolls.scrolled
+        
+        return total_scrolled
     
     def get_num_remix_produced(self, obj):
         return len(obj.remix_set.all())

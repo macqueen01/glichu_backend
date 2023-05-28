@@ -87,13 +87,15 @@ class VideoMediaManager(models.Manager):
             url_preprocess = kwargs['video']
             uploader = User.objects.get_user_from_id(kwargs['user_id'])
             title = kwargs['title']
+            thumbnail = kwargs['thumbnail']
             created_at = timezone.now()
 
             media_object = self.model(
                 url_preprocess=url_preprocess,
                 uploader=uploader,
                 created_at=created_at,
-                title=title
+                title=title,
+                thumbnail = thumbnail
             )
 
             media_object.save()
@@ -581,6 +583,8 @@ class VideoMedia(models.Model):
                                  default=None, related_name="uploaded_video", null=True)
     created_at = models.DateTimeField()
     title = models.CharField(max_length=400, default="Untitled")
+
+    thumbnail = models.ImageField(storage=s3_storage, upload_to='thumbnails/%Y%m%d', blank = True, null = True)
 
     objects = VideoMediaManager()
 

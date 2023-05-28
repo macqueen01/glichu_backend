@@ -272,10 +272,4 @@ ASGI_APPLICATION = 'mockingJae_back.asgi.application'
 # Apple Private Key
 
 APPLE_PRIVATE_KEY = """
------BEGIN PRIVATE KEY-----
-MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgRx4rVo9oVpA0Mlqq
-CGqdcCL1i/mHzWec2X8kUX4VNmqgCgYIKoZIzj0DAQehRANCAASIiQ5phyycusRP
-tkWNbUmM4FcvqQM5JteuB+HZpB5jXQagH+euwQ1q8HLvU5zIJaHunVQ94ot09Ap1
-NjTthwSH
------END PRIVATE KEY-----
 """

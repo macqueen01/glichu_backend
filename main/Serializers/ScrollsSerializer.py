@@ -101,6 +101,9 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
     created_by = UserSerializerForScrolls()
 
     def get_thumbnail_url(self, instance):
+        media = instance.original
+        if thumbnail := media.thumbnail:
+            return thumbnail.url.split('?')[0]
         return f'{instance.scrolls_dir}/1.jpeg'
 
     class Meta:

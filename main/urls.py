@@ -18,7 +18,7 @@ from main.views import scrolls_browse, scrolls_of_user, \
     video_upload, scrollify_video_depricated, scrolls_upload, \
     task_status, random_scrolls, auto_recording_upload, auto_recording_from_scrolls, is_duplicate_user, \
     user_login, user_join, user_logout, user_login_with_token, \
-    get_followings, get_followers, get_user
+    get_followings, get_followers, get_user, self_profile
 
 urlpatterns = [
     path('browse/', random_scrolls),
@@ -45,5 +45,6 @@ urlpatterns = [
     path('user/', get_user),
     path('user/following', get_followings),
     path('user/follower', get_followers),
+    path('user/self', self_profile)
 
 ]

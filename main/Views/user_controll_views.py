@@ -18,7 +18,6 @@ from main.models import Scrolls, User, Recommendation
 from main.serializer import *
 
 
-
 def is_duplicate_user(request):
     try:
         if request.method != 'POST':
@@ -44,6 +43,20 @@ def is_duplicate_user(request):
         return Response({'message': 'argument missing'}, 
             status=status.HTTP_400_BAD_REQUEST)
 
+
+def user_fetch(request):
+
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if user is None:
+        return Response({'message': 'user is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if request.method != 'GET':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    serialized_user = UserSerializerForSelfProfile
+    result = serialized_user(user)
+    return Response(result.data, status=status.HTTP_200_OK)
 
 
 def reset_profile_image(request):
