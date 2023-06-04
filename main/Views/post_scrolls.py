@@ -3,6 +3,8 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import status, exceptions
 
+from notifications.signals import notify
+
 
 from main.models import Scrolls, User
 from main.serializer import *
@@ -110,6 +112,7 @@ def scrolls_upload_without_scrollify(request):
                 status=status.HTTP_404_NOT_FOUND)
         
         if scrolls := VideoMedia.objects.mp4_to_scrolls_without_scrollify(media_id=media_id, scrolls_id=scrolls_object.id):
+            notify.send(sender=User.objects.get(id=scrolls_object.user_id), recipient=User.objects.get(id=scrolls_object.user_id).followers, verb='has uploaded new scrolls', action_object=scrolls)
             return Response({'message': 'scrolls uploaded successfully', 'scrolls_id': scrolls.id},
                 status=status.HTTP_200_OK)
 

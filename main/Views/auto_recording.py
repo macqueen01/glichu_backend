@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status, exceptions
 from rest_framework.pagination import PageNumberPagination
 
+from notifications.signals import notify
 
 from main.BusinessLogics.Authentications.instagram_authentication import get_user_from_token
 from main.BusinessLogics.Scrolls.timelines import IndexTimeline
@@ -99,8 +100,13 @@ def upload_auto_recording_as_raw_text(request):
 
             new_remix.task_queue_json = json.dumps(parsed_request)
             Scrolls.objects.increase_scrolled(scrolls.id)
-            
             new_remix.save()
+
+            try:
+                notify.send(sender=user, recipient=scrolls.created_by, verb='has scrolled your post', action_object=new_remix)
+            except Exception as e:
+                print(e)
+
                 
             return Response({'message': 'remix upload as raw json successfull'},
                 status=status.HTTP_200_OK)

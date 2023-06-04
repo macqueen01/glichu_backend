@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'main.apps.MainConfig',
     'django.contrib.admin',
     'django.contrib.auth',
+    'notifications',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -135,6 +136,7 @@ REST_KNOX = {
     'AUTO_REFRESH': False,
     'EXPIRY_DATETIME_FORMAT': api_settings.DATETIME_FORMAT,
 }
+
 
 """
 AUTHENTICATION_BACKENDS = (
@@ -254,6 +256,10 @@ s3_storage = S3Storage(
 # Celery configurations
 
 
+# Notification Settings
+
+
+
 
 # Redis configuration
 
@@ -262,7 +268,10 @@ REDIS_BROKER_CHANEL = 'redis://localhost:6379'
 # Websocket configuration
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer', # or use the backend of your choice
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
     },
 }
 

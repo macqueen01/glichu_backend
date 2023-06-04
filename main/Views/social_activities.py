@@ -28,28 +28,28 @@ def get_user(request, user_id):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-def follow(request):
+def follow(request, user_id):
     user = authenticate_then_user_or_unauthorized_error(request)
 
     if request.method != 'POST':
         return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
     
     try:
-        target = request.data['target_id']
+        target = user_id
         User.objects.follow_user_from_id(user.id, target)
         return Response({'message': 'followed'}, status=status.HTTP_200_OK)
     except:
         return Response({'message': 'argument missing'}, status=status.HTTP_400_BAD_REQUEST)
     
 
-def unfollow(request):
+def unfollow(request, user_id):
     user = authenticate_then_user_or_unauthorized_error(request)
 
     if request.method != 'POST':
         return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
     
     try:
-        target = request.data['target_id']
+        target = user_id
         User.objects.unfollow_user_from_id(user.id, target)
         return Response({'message': 'unfollowed'}, status=status.HTTP_200_OK)
     except:
