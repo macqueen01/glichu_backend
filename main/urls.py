@@ -14,11 +14,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path, include
+import notifications.urls
+
 from main.views import scrolls_browse, scrolls_of_user, \
     video_upload, scrollify_video_depricated, scrolls_upload, \
     task_status, random_scrolls, auto_recording_upload, auto_recording_from_scrolls, is_duplicate_user, \
     user_login, user_join, user_logout, user_login_with_token, \
-    get_followings, get_followers, get_user, self_profile
+    get_followings, get_followers, get_user, self_profile, \
+    follow_user, unfollow_user, is_user_self, has_tagged, tag_user
 
 urlpatterns = [
     path('browse/', random_scrolls),
@@ -45,6 +48,21 @@ urlpatterns = [
     path('user/', get_user),
     path('user/following', get_followings),
     path('user/follower', get_followers),
-    path('user/self', self_profile)
+    path('user/self', self_profile),
+
+    path('user/is-self', is_user_self),
+
+    # social interactions
+    path('user/follow', follow_user),
+    path('user/unfollow', unfollow_user),
+
+    # tag interactions
+    path('tag/has-tagged', has_tagged),
+    path('tag/', tag_user),
+
+
+    # Notification
+
+    path('inbox/notifications/', include(notifications.urls, namespace='notifications')),
 
 ]

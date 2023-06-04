@@ -34,28 +34,60 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserSerializerForRemix(serializers.ModelSerializer):
     profile_image = serializers.ImageField(use_url=True)
+    tagged_by = serializers.SerializerMethodField()
+
+    def get_tagged_by(self, obj):
+        
+        if not obj.invited_by.exists():
+            return 'Tagger not found'
+        
+        tagger = obj.invited_by.all().last()
+        
+        return tagger.username
 
     class Meta:
         model = User
         fields = (
             "id",
             "username",
-            "profile_image"
+            "profile_image",
+            "tagged_by"
         )
 
 class UserSerializerForScrolls(serializers.ModelSerializer):
     profile_image = serializers.ImageField(use_url=True)
+    tagged_by = serializers.SerializerMethodField()
+
+    def get_tagged_by(self, obj):
+        
+        if not obj.invited_by.exists():
+            return 'Tagger not found'
+        
+        tagger = obj.invited_by.all().last()
+        
+        return tagger.username
 
     class Meta:
         model = User
         fields = (
             "id",
             "username",
-            "profile_image"
+            "profile_image",
+            "tagged_by"
         )
 
 class UserSerializerGeneralUse(serializers.ModelSerializer):
     profile_image = serializers.ImageField(use_url=True)
+    tagged_by = serializers.SerializerMethodField()
+
+    def get_tagged_by(self, obj):
+        
+        if not obj.invited_by.exists():
+            return 'Tagger not found'
+        
+        tagger = obj.invited_by.all().last()
+        
+        return tagger.username
     
 
     class Meta:
@@ -63,13 +95,15 @@ class UserSerializerGeneralUse(serializers.ModelSerializer):
         fields = (
             "id",
             "username",
-            "profile_image"
+            "profile_image",
+            "tagged_by"
         )
 
 class UserSerializerWithFollowingRelations(serializers.ModelSerializer):
     is_followed_by_user = serializers.SerializerMethodField()
     is_following_user = serializers.SerializerMethodField()
     profile_image = serializers.ImageField(use_url=True)
+    tagged_by = serializers.SerializerMethodField()
     
     def get_is_followed_by_user(self, obj):
         user = self.context.get("user")
@@ -79,6 +113,15 @@ class UserSerializerWithFollowingRelations(serializers.ModelSerializer):
         user = self.context.get("user")
         return obj.followings.filter(pk=user.id).exists()
     
+    def get_tagged_by(self, obj):
+        
+        if not obj.invited_by.exists():
+            return 'Tagger not found'
+        
+        tagger = obj.invited_by.all().last()
+        
+        return tagger.username
+    
     class Meta:
         model = User
         fields = (
@@ -86,7 +129,8 @@ class UserSerializerWithFollowingRelations(serializers.ModelSerializer):
             "username",
             "profile_image",
             "is_followed_by_user",
-            "is_following_user"
+            "is_following_user",
+            "tagged_by"
         )
 
 
@@ -120,12 +164,27 @@ class UserSerializerForSelfProfile(serializers.ModelSerializer):
         return len(obj.remix_set.all())
     
     def get_tagged_by(self, obj):
-        tagger = obj.tagger
-
-        if (tagger == None):
+        
+        if not obj.invited_by.exists():
             return 'Tagger not found'
         
+        tagger = obj.invited_by.all().last()
+        
         return tagger.username
+    
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "username",
+            "profile_image",
+            "num_followers",
+            "num_followings",
+            "num_scrolls_uploaded",
+            "num_scrolls_scrolled",
+            "num_remix_produced",
+            "tagged_by"
+        )
     
 
 

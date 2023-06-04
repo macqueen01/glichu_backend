@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 
 from main.Views import browse_scrolls, post_scrolls, \
-    auto_recording, user_controll_views, social_activities
+    auto_recording, user_controll_views, social_activities, tag_interactions
 
 @api_view(['GET'])
 def scrolls_browse(request):
@@ -90,6 +90,14 @@ def self_profile(request):
     return user_controll_views.user_fetch(request)
 
 
+# User Controll - Utilities
+
+@api_view(['GET'])
+def is_user_self(request):
+    target_id = int(request.query_params['id'])
+    return user_controll_views.is_user_self(request, target_id)
+
+
 # Social Interactions
 
 @api_view(['GET'])
@@ -106,7 +114,31 @@ def get_followings(request):
 def get_user(request):
     user_id = int(request.query_params['id'])
     return social_activities.get_user(request, user_id)
-    
+
+@api_view(['POST'])
+def follow_user(request):
+    user_id = int(request.query_params['id'])
+    return social_activities.follow(request, user_id)
+
+@api_view(['POST'])
+def unfollow_user(request):
+    user_id = int(request.query_params['id'])
+    return social_activities.unfollow(request, user_id)
+
+
+
+# Tagging interactions
+
+@api_view(['GET'])
+def has_tagged(request):
+    target_id = int(request.query_params['id'])
+    return tag_interactions.has_tagged(request, target_id)
+
+@api_view(['POST'])
+def tag_user(request):
+    inviter_id = int(request.query_params['id'])
+    return tag_interactions.accept_invitation(request, inviter_id)
+
 
 # DEPRICATED APIS
 

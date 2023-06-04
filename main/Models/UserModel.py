@@ -66,6 +66,24 @@ class UserManager(BaseUserManager):
         user.save(using = self._db)
         return user
     
+    def accept_invitation(self, candidate_id, inviter_id):
+        inviter = self.get_user_from_id(inviter_id)
+        candidate = self.get_user_from_id(candidate_id)
+        
+        if (not inviter or not candidate):
+            return False
+        
+        if (candidate in inviter.invited.all()):
+            return False
+        
+        inviter.invited.add(candidate)
+        candidate.is_invited = 1
+
+        self.follow_user_from_id(inviter_id, candidate_id)
+        self.follow_user_from_id(candidate_id, inviter_id)
+
+        return True
+        
     def get_user_from_id(self, user_id):
         if (user := self.filter(id__exact = user_id)).exists():
             return user.get()
@@ -73,14 +91,13 @@ class UserManager(BaseUserManager):
         
     def follow_user_from_id(self, user_id, target_user_id):
         if (user := self.get_user_from_id(user_id)) and (target_user := self.get_user_from_id(target_user_id)):
-            user.followers.add(target_user)
+            target_user.followers.add(user)
             return True
         return False
 
     def unfollow_user_from_id(self, user_id, target_user_id):
         if (user := self.get_user_from_id(user_id)) and (target_user := self.get_user_from_id(target_user_id)):
-            user.followers.remove(target_user)
-            return True
+            target_user.followers.remove(user)
         return False
     
     def undirected_follow(self, user_id, target_user_id):
@@ -100,13 +117,13 @@ class UserManager(BaseUserManager):
     def get_followers(self, user_id):
         # return followers except for user_id
         if (user := self.get_user_from_id(user_id)):
-            return user.followers.all()
+            return user.followers.exclude(id = user_id).all()
         return False
     
     def get_followings(self, user_id):
         # return followings except for user_id
         if (user := self.get_user_from_id(user_id)):
-            return user.followings.all()
+            return user.followings.exclude(id = user_id).all()
         return False
     
     def get_followers_count(self, user_id):
@@ -140,6 +157,10 @@ class User(AbstractBaseUser):
 
     followers = models.ManyToManyField('self', symmetrical = False, related_name = 'followings')
     tagger = models.ForeignKey('self', on_delete=models.SET_DEFAULT, default=None, null = True)
+
+    invited = models.ManyToManyField('self', symmetrical = False, related_name = 'invited_by')
+    is_invited = models.IntegerField(blank = True, null = True, default=0)
+    invited_at = models.DateTimeField(blank = True, null = True)
 
     
     objects = UserManager()

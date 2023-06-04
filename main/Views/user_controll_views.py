@@ -43,6 +43,20 @@ def is_duplicate_user(request):
         return Response({'message': 'argument missing'}, 
             status=status.HTTP_400_BAD_REQUEST)
 
+def is_user_self(request, target_id):
+
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if user is None:
+        return Response({'message': 'user is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if request.method != 'GET':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    if user.id == target_id:
+        return Response({'message': 'user is self', 'is_self': 1}, status=status.HTTP_200_OK)
+    
+    return Response({'message': 'user is not self', 'is_self': 0}, status=status.HTTP_200_OK)
 
 def user_fetch(request):
 

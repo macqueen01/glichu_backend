@@ -3,6 +3,7 @@ from .Models.ScrollsModel import *
 from .Models.RecommendationModel import *
 from .Models.TaskModel import *
 from .Models.RemixModel import *
+from .Models.Message import *
 
 
 
