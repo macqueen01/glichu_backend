@@ -86,6 +86,76 @@ class RemixManager(models.Manager):
             return False
         
 
+    def raise_remix_report(self, user_id, remix_id):
+        if (user := User.objects.get_user_from_id(user_id)) and (remix := Remix.objects.get(id = remix_id)):
+            user.reported_remixes.add(remix)
+            user.save()
+            return True
+        return False
+        
+    def resolve_remix_report(self, user_id, remix_id):
+        if (user := User.objects.get_user_from_id(user_id)) and (remix := self.get(id = remix_id)):
+            user.reported_remixes.remove(remix)
+            user.save()
+            return True
+        return False
+    
+
+    def like_remix(self, user_id, remix_id):
+
+        user = User.objects.get_user_from_id(user_id)
+        remix = Remix.objects.get(id=remix_id)
+
+        if (user == None):
+            return None
+        
+        if (remix == None):
+            return None
+        
+        if (user in remix.liked_by.all()):
+            return None
+        
+        remix.liked_by.add(user)
+        remix.save()
+
+        return remix
+    
+    def unlike_remix(self, user_id, remix_id):
+
+        user = User.objects.get_user_from_id(user_id)
+        remix = Remix.objects.get(id=remix_id)
+
+        if (user == None):
+            return None
+        
+        if (remix == None):
+            return None
+        
+        if (user not in remix.liked_by.all()):
+            return None
+        
+        remix.liked_by.remove(user)
+        remix.save()
+
+        return remix
+    
+    def does_user_like_remix(self, user_id, remix_id):
+
+        user = User.objects.get_user_from_id(user_id)
+        remix = Remix.objects.get(id=remix_id)
+
+        if (user == None):
+            return None
+        
+        if (remix == None):
+            return None
+        
+        if (user in remix.liked_by.all()):
+            return True
+        
+        return False
+        
+
 class RemixPermissionManager(models.Manager):
 
     def give_remix_permission_to_scrolls_uploader(self, remix_id):
@@ -119,6 +189,9 @@ class RemixPermissionManager(models.Manager):
         return remix_permission
     
 
+
+    
+
 class RemixManager_DEBUG(RemixManager):
 
     def create_remix(self, title, scrolls, remix_directory):
@@ -143,6 +216,10 @@ class Remix(models.Model):
 
     task_queue_json = models.TextField(null=True, default='{}')
     length = models.IntegerField(null=True, default=0)
+
+    liked_by = models.ManyToManyField(User, related_name='liked_remixes', null = True)
+
+    reported_by = models.ManyToManyField(User, related_name='reported_remixes', null = True)
 
     objects = RemixManager()
 

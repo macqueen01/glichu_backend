@@ -281,4 +281,5 @@ ASGI_APPLICATION = 'mockingJae_back.asgi.application'
 # Apple Private Key
 
 APPLE_PRIVATE_KEY = """
+
 """

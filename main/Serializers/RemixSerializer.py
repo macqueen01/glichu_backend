@@ -32,6 +32,9 @@ class RemixViewSerializerWithRawJson(serializers.ModelSerializer):
     length = serializers.SerializerMethodField()
     scrolls_video_url = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField()
+    
+    is_liked_by_user = serializers.SerializerMethodField()
+    likes = serializers.SerializerMethodField()
 
     def get_thumbnail_url(self, instance):
         return f'{instance.scrolls.scrolls_dir}/1.jpeg'
@@ -50,6 +53,17 @@ class RemixViewSerializerWithRawJson(serializers.ModelSerializer):
         scrolls = Scrolls.objects.get(id=obj.scrolls.id)
         scrolls_video_url = scrolls.video_url
         return scrolls_video_url
+    
+    def get_is_liked_by_user(self, obj):
+        user = self.context.get('user')
+        
+        if user in obj.liked_by.all():
+            return 1
+        
+        return 0
+
+    def get_likes(self, obj):
+        return obj.liked_by.count()
 
     class Meta:
         model = Remix
@@ -62,5 +76,7 @@ class RemixViewSerializerWithRawJson(serializers.ModelSerializer):
             'timeline',
             'length',
             'scrolls_video_url',
-            'created_at'
+            'created_at',
+            'is_liked_by_user',
+            'likes'
         )

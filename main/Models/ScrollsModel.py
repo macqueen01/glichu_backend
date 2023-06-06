@@ -294,6 +294,21 @@ class ScrollsManager(models.Manager):
             return new_cell
 
         return False
+    
+    
+    def raise_scrolls_report(self, user_id, scrolls_id):
+        if (user := User.objects.get_user_from_id(user_id)) and (scrolls := self.get(id = scrolls_id)):
+            user.reported_scrolls.add(scrolls)
+            user.save()
+            return True
+        return False
+    
+    def resolve_scrolls_report(self, user_id, scrolls_id):
+        if (user := User.objects.get_user_from_id(user_id)) and (scrolls := self.get(id = scrolls_id)):
+            user.reported_scrolls.remove(scrolls)
+            user.save()
+            return True
+        return False
 
     def _upload_to_s3(self, scrolls_id, scrolls_dirname):
         """
@@ -641,6 +656,9 @@ class Scrolls(models.Model):
     saved_by = models.ManyToManyField(to=User, related_name="saves", null = True)
     height = models.IntegerField(default=0)
     length = models.IntegerField(default=0)
+
+    # Reports
+    reported_by = models.ManyToManyField(to=User, related_name="reported_scrolls", null = True)
 
     audios = models.ManyToManyField(to=AudioModel, related_name="used_in", null = True)
 

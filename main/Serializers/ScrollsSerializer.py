@@ -58,6 +58,10 @@ class ScrollsSerializer(serializers.ModelSerializer):
     uploaded = serializers.IntegerField()
     ipfs_hash = serializers.CharField(max_length=100)
     scrolls_url = serializers.CharField(max_length=400)
+    num_remix = serializers.SerializerMethodField()
+
+    def get_num_remix(self, instance):
+        return instance.remix_set.count()
 
     def get_cells(self, instance):
         queryset = instance.cells.order_by('index')
@@ -78,13 +82,18 @@ class ScrollsSerializer(serializers.ModelSerializer):
             'cells',
             'uploaded',
             'ipfs_hash',
-            'scrolls_url'
+            'scrolls_url',
+            'num_remix'
         )
 
 class ScrollsSerializerForRemix(serializers.ModelSerializer):
     title = serializers.CharField(max_length=100)
     scrolls_url = serializers.CharField(max_length=400)
     scrolls_dir = serializers.CharField(max_length=200)
+    num_remix = serializers.SerializerMethodField()
+
+    def get_num_remix(self, instance):
+        return instance.remix_set.count()
 
     class Meta:
         model = Scrolls
@@ -92,13 +101,18 @@ class ScrollsSerializerForRemix(serializers.ModelSerializer):
             'id',
             'title',
             'scrolls_url',
-            'scrolls_dir'
+            'scrolls_dir',
+            'num_remix'
         )
 
 class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
     video_url = serializers.CharField(max_length=400)
     created_by = UserSerializerForScrolls()
+    num_remix = serializers.SerializerMethodField()
+
+    def get_num_remix(self, instance):
+        return instance.remix_set.count()
 
     def get_thumbnail_url(self, instance):
         media = instance.original
@@ -117,7 +131,8 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
             'created_by',
             'created_at',
             'video_url',
-            'scrolled'
+            'scrolled',
+            'num_remix'
         )
     
 

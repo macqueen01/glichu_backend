@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import BaseUserManager
 from django.utils import timezone
 
+
 from mockingJae_back import settings
 
 from mockingJae_back.storages import S3Storage
@@ -66,6 +67,12 @@ class UserManager(BaseUserManager):
         user.save(using = self._db)
         return user
     
+    def reset_username(self, user_id, username):
+        user = self.get_user_from_id(user_id)
+        user.username = username
+        user.save()
+        return user
+    
     def accept_invitation(self, candidate_id, inviter_id):
         inviter = self.get_user_from_id(inviter_id)
         candidate = self.get_user_from_id(candidate_id)
@@ -76,13 +83,19 @@ class UserManager(BaseUserManager):
         if (candidate in inviter.invited.all()):
             return False
         
+        if (candidate.is_invited == 0):
+            candidate.invited_at = timezone.now()
+        
         inviter.invited.add(candidate)
         candidate.is_invited = 1
+        candidate.save()
+        inviter.save()
 
         self.follow_user_from_id(inviter_id, candidate_id)
         self.follow_user_from_id(candidate_id, inviter_id)
 
         return True
+    
         
     def get_user_from_id(self, user_id):
         if (user := self.filter(id__exact = user_id)).exists():
@@ -161,7 +174,6 @@ class User(AbstractBaseUser):
     invited = models.ManyToManyField('self', symmetrical = False, related_name = 'invited_by')
     is_invited = models.IntegerField(blank = True, null = True, default=0)
     invited_at = models.DateTimeField(blank = True, null = True)
-
     
     objects = UserManager()
 

@@ -87,6 +87,24 @@ def user_fetch(request):
     return Response(result.data, status=status.HTTP_200_OK)
 
 
+def reset_username(request):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if user is None:
+        return Response({'message': 'user is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if request.method != 'POST':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    try:
+        username = request.data['username']
+        User.objects.reset_username(user.id, username)
+        return Response({'message': 'username is updated'}, status=status.HTTP_200_OK)
+    except:
+        return Response({'message': 'username is missing'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
 def reset_profile_image(request):
 
     user = authenticate_then_user_or_unauthorized_error(request)

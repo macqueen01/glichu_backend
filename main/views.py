@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 
 from main.Views import browse_scrolls, post_scrolls, \
-    auto_recording, user_controll_views, social_activities, tag_interactions
+    auto_recording, user_controll_views, social_activities, tag_interactions, reports
 
 @api_view(['GET'])
 def scrolls_browse(request):
@@ -19,6 +19,23 @@ def scrolls_of_user(request):
 @api_view(['GET'])
 def random_scrolls(request):
     return browse_scrolls.get_random_scrolls(request)
+
+
+@api_view(['GET'])
+def does_user_like_auto_recording(request):
+    auto_recording_id = int(request.query_params['id'])
+    return auto_recording.does_user_like_auto_recording(request, auto_recording_id)
+
+@api_view(['POST'])
+def like_auto_recording(request):
+    auto_recording_id = int(request.query_params['id'])
+    return auto_recording.like_auto_recording(request, auto_recording_id)
+
+@api_view(['POST'])
+def unlike_auto_recording(request):
+    auto_recording_id = int(request.query_params['id'])
+    return auto_recording.unlike_auto_recording(request, auto_recording_id)
+
 
 @api_view(['GET'])
 def auto_recording_from_scrolls(request):
@@ -89,6 +106,14 @@ def user_logout(request):
 def self_profile(request):
     return user_controll_views.user_fetch(request)
 
+@api_view(['POST'])
+def reset_username(request):
+    return user_controll_views.reset_username(request)
+
+@api_view(['POST'])
+def reset_profile(request):
+    return user_controll_views.reset_profile_image(request)
+
 
 # User Controll - Utilities
 
@@ -115,6 +140,11 @@ def get_user(request):
     user_id = int(request.query_params['id'])
     return social_activities.get_user(request, user_id)
 
+@api_view(['GET'])
+def get_user_detail(request):
+    user_id = int(request.query_params['id'])
+    return social_activities.get_user_detail(request, user_id)
+
 @api_view(['POST'])
 def follow_user(request):
     user_id = int(request.query_params['id'])
@@ -138,6 +168,27 @@ def has_tagged(request):
 def tag_user(request):
     inviter_id = int(request.query_params['id'])
     return tag_interactions.accept_invitation(request, inviter_id)
+
+
+# Reports
+
+@api_view(['GET'])
+def get_scrolls_reported(request):
+    return reports.get_scrolls_report_by_user(request)
+
+@api_view(['GET'])
+def get_remix_reported(request):
+    return reports.get_remix_report_by_user(request)
+
+@api_view(['POST'])
+def report_scrolls(request):
+    scrolls_id = int(request.query_params['id'])
+    return reports.raise_scrolls_report(request, scrolls_id)
+
+@api_view(['POST'])
+def report_remix(request):
+    remix_id = int(request.query_params['id'])
+    return reports.raise_remix_report(request, remix_id)
 
 
 # DEPRICATED APIS

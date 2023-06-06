@@ -11,11 +11,85 @@ from notifications.signals import notify
 from main.BusinessLogics.Authentications.instagram_authentication import get_user_from_token
 from main.BusinessLogics.Scrolls.timelines import IndexTimeline
 from main.BusinessLogics.Scrolls.timelines import Remix as RemixInMemory
+from main.Views.authentications import authenticate_then_user_or_unauthorized_error
 
 
 from main.models import Scrolls, User, Remix
 from main.serializer import *
 from main import tasks
+
+
+
+def does_user_like_auto_recording(request, remix_id):
+
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if request.method != 'GET':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    if not user:
+        return Response({'message': 'user not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    remix = Remix.objects.get(id=remix_id)
+
+    if not remix:
+        return Response({'message': 'remix not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    is_liked = Remix.objects.does_user_like_remix(user.id, remix.id)
+
+    if is_liked:
+        is_liked = 1
+    else:
+        is_liked = 0
+
+    return Response({'is_liked': is_liked}, status=status.HTTP_200_OK)
+
+
+def like_auto_recording(request, remix_id):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if request.method != 'POST':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    if not user:
+        return Response({'message': 'user not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    remix = Remix.objects.get(id=remix_id)
+
+    if not remix:
+        return Response({'message': 'remix not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+
+    Remix.objects.like_remix(user.id, remix.id)
+
+    return Response({'message': 'success'}, status=status.HTTP_200_OK)
+
+
+
+def unlike_auto_recording(request, remix_id):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if request.method != 'POST':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    if not user:
+        return Response({'message': 'user not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    remix = Remix.objects.get(id=remix_id)
+
+    if not remix:
+        return Response({'message': 'remix not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+
+    Remix.objects.unlike_remix(user.id, remix.id)
+
+    return Response({'message': 'success'}, status=status.HTTP_200_OK)
 
 
 
@@ -26,6 +100,8 @@ def get_auto_recording_from_scrolls(request,
                                     by_followers=False,
                                     mp4 = True
                                     ):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
     if (request.method == 'GET'):
 
         # assert(request.data['scrolls_id'])
@@ -47,16 +123,16 @@ def get_auto_recording_from_scrolls(request,
             browse_cases.order_by('task_queue_json')
         
         if by_recent:
-            browse_cases.order_by('-created_at')
+            browse_cases.order_by('created_at')
 
         if by_followers:
-            browse_cases.filter(user__in = scrolls.created_by.followers.all()).order_by('-created_at')
+            browse_cases.filter(user__in = scrolls.created_by.followers.all()).order_by('created_at')
 
 
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(browse_cases, request)
-        serializer = serializer(result_page, many=True)
+        serializer = serializer(result_page, many=True, context={'user': user})
         return paginator.get_paginated_response(serializer.data)
     
     return Response({'message': "wrong method call"}, 
