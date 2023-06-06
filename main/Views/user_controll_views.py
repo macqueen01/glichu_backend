@@ -115,11 +115,12 @@ def reset_profile_image(request):
     if request.method == 'POST':
 
         try:
-            profile_image = request['profile_image']
+            profile_image = request.data['profile_image']
             user.profile_image = profile_image
             user.save()
             return Response({'message': 'profile image is updated'}, status=status.HTTP_200_OK)
-        except:
+        except Exception as e:
+            print(e)
             return Response({'message': 'profile image is missing'}, status=status.HTTP_404_NOT_FOUND)
         
     return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)

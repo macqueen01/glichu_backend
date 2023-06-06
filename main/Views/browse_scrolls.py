@@ -3,9 +3,33 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import status, exceptions
 from rest_framework.pagination import PageNumberPagination
+from main.Views.authentications import authenticate_then_user_or_unauthorized_error
 
 from main.models import Scrolls, User, Recommendation
 from main.serializer import *
+
+
+
+def get_personalized_scrolls_feed(request):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if user is None:
+        return Response({'message': 'user is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if (request.method == 'GET'):
+
+        scrolls = Scrolls.objects.all().order_by('-created_at')
+
+        serializer = ScrollsSerializerGeneralUse
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 10
+        result_page = paginator.paginate_queryset(scrolls, request)
+        serializer = serializer(result_page, many=True, context={'user': user})
+        return paginator.get_paginated_response(serializer.data)
+    
+    return Response({'message': "wrong method call"}, 
+        status = status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 def scrolls_with_given_id(request, id):
@@ -74,6 +98,28 @@ def get_random_scrolls(request):
     result = serializer(scrolls)
     
     return Response(result.data, status=status.HTTP_200_OK)
+
+def get_saved_scrolls_of_user(request, user_id):
+    if (request.method != 'GET'):
+        return Response({'message': 'wrong method call'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    try:
+        user = User.objects.get(id=user_id)
+
+        
+        if not user:
+            return Response({'message': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        scrolls = Scrolls.objects.filter(saved_by = user.id).order_by('-created_at')
+        paginator = PageNumberPagination()
+        paginator.page_size = 1000
+        result_page = paginator.paginate_queryset(scrolls, request)
+        serializer = ScrollsSerializerGeneralUse(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except:
+        return Response({'message': 'argument missing'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 def get_scrolls_by_user(request, user_id):
     if (request.method != 'GET'):

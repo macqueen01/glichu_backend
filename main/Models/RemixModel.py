@@ -218,6 +218,7 @@ class Remix(models.Model):
     length = models.IntegerField(null=True, default=0)
 
     liked_by = models.ManyToManyField(User, related_name='liked_remixes', null = True)
+    saved_by_scrolls_uploader = models.IntegerField(default=0)
 
     reported_by = models.ManyToManyField(User, related_name='reported_remixes', null = True)
 

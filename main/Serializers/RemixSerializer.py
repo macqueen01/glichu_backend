@@ -11,6 +11,9 @@ class RemixViewSerializer(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
 
     def get_thumbnail_url(self, instance):
+        media = instance.scrolls.original
+        if thumbnail := media.thumbnail:
+            return thumbnail.url.split('?')[0]
         return f'{instance.scrolls.scrolls_dir}/1.jpeg'
 
     class Meta:
@@ -37,6 +40,9 @@ class RemixViewSerializerWithRawJson(serializers.ModelSerializer):
     likes = serializers.SerializerMethodField()
 
     def get_thumbnail_url(self, instance):
+        media = instance.scrolls.original
+        if thumbnail := media.thumbnail:
+            return thumbnail.url.split('?')[0]
         return f'{instance.scrolls.scrolls_dir}/1.jpeg'
     
     def get_timeline(self, obj):

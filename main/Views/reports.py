@@ -66,6 +66,31 @@ def raise_remix_report(request, remix_id):
 
     return Response({'message': 'success'}, status=status.HTTP_200_OK)
 
+def raise_user_report(request, user_id):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if (request.method != 'POST'):
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    if not user:
+        return Response({'message': 'user not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    user_reported = User.objects.get(id=user_id)
+
+    if not user_reported:
+        return Response({'message': 'user not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    
+    if user_reported == user:
+        return Response({'message': 'cannot report yourself'},
+            status=status.HTTP_400_BAD_REQUEST)
+    
+    User.objects.raise_user_report(user.id, user_reported.id)
+
+    return Response({'message': 'success'}, status=status.HTTP_200_OK)
+
 def get_scrolls_report_by_user(request):
     user = authenticate_then_user_or_unauthorized_error(request)
 

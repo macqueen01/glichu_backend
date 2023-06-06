@@ -38,7 +38,7 @@ def authenticate_then_user_or_unauthorized_error(request):
         user = get_user_from_token(token)
         return user
     else:
-        return Response({'message': 'token is invalid'}, status=status.HTTP_401_UNAUTHORIZED)
+        raise exceptions.AuthenticationFailed('token is invalid', code=status.HTTP_401_UNAUTHORIZED)
 
 def authenticate_and_invitation_check_then_user_or_unauthorized_error(request):
 

@@ -67,6 +67,17 @@ class UserManager(BaseUserManager):
         user.save(using = self._db)
         return user
     
+    def raise_user_report(self, user_id, user_reported):
+        if (user := self.get_user_from_id(user_id)) and (user_reported := self.get_user_from_id(user_reported)):
+
+            if (user_reported in user.reported.all()):
+                return False
+            
+            user_reported.reported_by.add(user)
+            user_reported.save()
+            return True
+        return False
+    
     def reset_username(self, user_id, username):
         user = self.get_user_from_id(user_id)
         user.username = username
@@ -174,6 +185,9 @@ class User(AbstractBaseUser):
     invited = models.ManyToManyField('self', symmetrical = False, related_name = 'invited_by')
     is_invited = models.IntegerField(blank = True, null = True, default=0)
     invited_at = models.DateTimeField(blank = True, null = True)
+
+
+    reported_by = models.ManyToManyField('self', symmetrical = False, related_name = 'reported')
     
     objects = UserManager()
 

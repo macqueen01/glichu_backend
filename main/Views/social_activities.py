@@ -104,3 +104,41 @@ def get_followings(request, user_id):
         return Response({'message': 'argument missing'}, status=status.HTTP_400_BAD_REQUEST)
     
 
+def save_scrolls(request, scrolls_id):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if request.method != 'POST':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    scrolls = Scrolls.objects.get_scrolls_from_id(scrolls_id)
+
+    if scrolls is None:
+        return Response({'message': 'scrolls is invalid'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if scrolls in user.saves.all():
+        return Response({'message': 'already saved'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    user.saves.add(scrolls)
+    return Response({'message': 'saved'}, status=status.HTTP_200_OK)
+
+
+def unsave_scrolls(request, scrolls_id):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if request.method != 'POST':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    scrolls = Scrolls.objects.get_scrolls_from_id(scrolls_id)
+
+    if scrolls is None:
+        return Response({'message': 'scrolls is invalid'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if scrolls not in user.saves.all():
+        return Response({'message': 'not saved'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    user.saves.remove(scrolls)
+    return Response({'message': 'unsaved'}, status=status.HTTP_200_OK)
+
+
+
+    

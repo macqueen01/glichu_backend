@@ -172,6 +172,8 @@ class UserSerializerWithDetail(serializers.ModelSerializer):
     is_tagged = serializers.SerializerMethodField()
     is_followed_by_user = serializers.SerializerMethodField()
     is_following_user = serializers.SerializerMethodField()
+    invited_by = serializers.SerializerMethodField()
+    invited_at = serializers.SerializerMethodField()
 
 
     def get_is_followed_by_user(self, obj):
@@ -216,6 +218,21 @@ class UserSerializerWithDetail(serializers.ModelSerializer):
         if obj.is_invited == 1:
             return 1
         return 0
+    
+    def get_invited_at(self, obj):
+        if not obj.invited_at:
+            return None
+        
+        time = obj.invited_at
+        return time
+    
+    def get_invited_by(self, obj):
+        if not obj.invited_by.exists():
+            return None
+        
+        tagger = obj.invited_by.all().first()
+        tagger_result = UserSerializerGeneralUse(tagger).data
+        return tagger_result
 
     class Meta:
         model = User
@@ -231,7 +248,9 @@ class UserSerializerWithDetail(serializers.ModelSerializer):
             "num_scrolls_scrolled",
             "num_remix_produced",
             "tagged_by",
-            "is_tagged"
+            "is_tagged",
+            "invited_by",
+            "invited_at"
         )
 
 

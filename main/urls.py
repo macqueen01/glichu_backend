@@ -16,19 +16,14 @@ Including another URLconf
 from django.urls import path, include
 import notifications.urls
 
-from main.views import scrolls_browse, scrolls_of_user, \
-    video_upload, scrollify_video_depricated, scrolls_upload, \
-    task_status, random_scrolls, auto_recording_upload, auto_recording_from_scrolls, is_duplicate_user, \
-    user_login, user_join, user_logout, user_login_with_token, \
-    get_followings, get_followers, get_user, get_user_detail, self_profile, \
-    reset_profile, reset_username, \
-    follow_user, unfollow_user, is_user_self, has_tagged, tag_user, \
-    get_scrolls_reported, get_remix_reported, report_remix, report_scrolls, \
-    does_user_like_auto_recording, like_auto_recording, unlike_auto_recording \
+from main.views import *
 
 urlpatterns = [
-    path('browse/', random_scrolls),
+    path('browse/', get_personalized_scrolls),
     path('browse/user', scrolls_of_user),
+    path('browse/saved', saved_scrolls_of_user),
+    path('save', save_scrolls),
+    path('unsave', unsave_scrolls),
     path('upload/video', video_upload),
     path('upload/scrollify', scrollify_video_depricated),
     path('upload/post', scrolls_upload),
@@ -39,6 +34,9 @@ urlpatterns = [
     path('auto-recording/like', like_auto_recording),
     path('auto-recording/unlike', unlike_auto_recording),
     path('auto-recording/is-liked', does_user_like_auto_recording),
+    path('auto-recording/saved', saved_auto_recording),
+    path('auto-recording/save', auto_recording_save),
+    path('auto-recording/unsave', auto_recording_unsave),
 
     # task query
     path('upload/task', task_status),
@@ -76,6 +74,7 @@ urlpatterns = [
     path('report/remix', report_remix),
     path('report/browse/scrolls', get_scrolls_reported),
     path('report/browse/remix', get_remix_reported),
+    path('report/user', report_user),
 
     # Notification
 

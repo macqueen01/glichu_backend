@@ -306,7 +306,7 @@ class ScrollsManager(models.Manager):
     def resolve_scrolls_report(self, user_id, scrolls_id):
         if (user := User.objects.get_user_from_id(user_id)) and (scrolls := self.get(id = scrolls_id)):
             user.reported_scrolls.remove(scrolls)
-            user.save()
+            
             return True
         return False
 

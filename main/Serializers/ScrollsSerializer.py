@@ -91,9 +91,13 @@ class ScrollsSerializerForRemix(serializers.ModelSerializer):
     scrolls_url = serializers.CharField(max_length=400)
     scrolls_dir = serializers.CharField(max_length=200)
     num_remix = serializers.SerializerMethodField()
+    created_by = serializers.SerializerMethodField()
 
     def get_num_remix(self, instance):
         return instance.remix_set.count()
+    
+    def get_created_by(self, instance):
+        return instance.created_by.id
 
     class Meta:
         model = Scrolls
@@ -102,7 +106,8 @@ class ScrollsSerializerForRemix(serializers.ModelSerializer):
             'title',
             'scrolls_url',
             'scrolls_dir',
-            'num_remix'
+            'num_remix',
+            'created_by'
         )
 
 class ScrollsSerializerGeneralUse(serializers.ModelSerializer):

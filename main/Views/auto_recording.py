@@ -93,6 +93,97 @@ def unlike_auto_recording(request, remix_id):
 
 
 
+def get_saved_auto_recording(request, user_id):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if request.method != 'GET':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    if not user:
+        return Response({'message': 'user not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    target = User.objects.get(id=user_id)
+
+    if not target:
+        return Response({'message': 'target not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    saved_remixes = Remix.objects.filter(saved_by_scrolls_uploader=1, scrolls__created_by=target).order_by('-created_at')
+
+    serialized_remixes = RemixViewSerializerWithRawJson(saved_remixes, many=True, context={'user': user}).data
+    return Response({'remixes': serialized_remixes}, status=status.HTTP_200_OK)
+
+
+def save_auto_recording(request):
+
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    remix_id = request.data['remix_id']
+
+    if request.method != 'POST':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    if not user:
+        return Response({'message': 'user not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    remix = Remix.objects.get(id=remix_id)
+
+    if not remix:
+        return Response({'message': 'remix not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    if remix.scrolls.created_by.id != user.id:
+        return Response({'message': 'user not authorized'},
+            status=status.HTTP_401_UNAUTHORIZED)
+    
+    if remix.saved_by_scrolls_uploader == 1:
+        return Response({'message': 'already saved'},
+            status=status.HTTP_400_BAD_REQUEST)
+    
+    remix.saved_by_scrolls_uploader = 1
+    remix.save()
+
+    return Response({'message': 'success'}, status=status.HTTP_200_OK)
+
+
+def unsave_auto_recording(request, remix_id):
+    
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    remix_id = request.data['remix_id']
+    
+    if request.method != 'POST':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+       
+    if not user:
+        return Response({'message': 'user not found'},
+            status=status.HTTP_404_NOT_FOUND)
+    
+    remix = Remix.objects.get(id=remix_id)
+
+    if not remix:
+        return Response({'message': 'remix not found'},
+            status=status.HTTP_404_NOT_FOUND)
+        
+    if remix.scrolls.created_by.id != user.id:
+        return Response({'message': 'user not authorized'},
+            status=status.HTTP_401_UNAUTHORIZED)
+        
+    if remix.saved_by_scrolls_uploader == 0:
+        return Response({'message': 'already unsaved'},
+            status=status.HTTP_400_BAD_REQUEST)
+        
+    remix.saved_by_scrolls_uploader = 0
+    remix.save()
+    
+    return Response({'message': 'success'}, status=status.HTTP_200_OK)
+    
+
+
+
+
 def get_auto_recording_from_scrolls(request, 
                                     scrolls_id, 
                                     by_recent = True, 

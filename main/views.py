@@ -20,6 +20,25 @@ def scrolls_of_user(request):
 def random_scrolls(request):
     return browse_scrolls.get_random_scrolls(request)
 
+@api_view(['GET'])
+def get_personalized_scrolls(request):
+    return browse_scrolls.get_personalized_scrolls_feed(request)
+
+@api_view(['POST'])
+def save_scrolls(request):
+    scrolls_id = int(request.query_params['id'])
+    return social_activities.save_scrolls(request, scrolls_id)
+
+@api_view(['POST'])
+def unsave_scrolls(request):
+    scrolls_id = int(request.query_params['id'])
+    return social_activities.unsave_scrolls(request, scrolls_id)
+
+@api_view(['GET'])
+def saved_scrolls_of_user(request):
+    user_id = int(request.query_params['id'])
+    return browse_scrolls.get_saved_scrolls_of_user(request, user_id)
+
 
 @api_view(['GET'])
 def does_user_like_auto_recording(request):
@@ -35,6 +54,15 @@ def like_auto_recording(request):
 def unlike_auto_recording(request):
     auto_recording_id = int(request.query_params['id'])
     return auto_recording.unlike_auto_recording(request, auto_recording_id)
+
+
+@api_view(['POST'])
+def auto_recording_save(request):
+    return auto_recording.save_auto_recording(request)
+
+@api_view(['POST'])
+def auto_recording_unsave(request):
+    return auto_recording.unsave_auto_recording(request)
 
 
 @api_view(['GET'])
@@ -57,6 +85,12 @@ def auto_recording_from_scrolls(request):
 
 
     return auto_recording.get_auto_recording_from_scrolls(request, scrolls_id, by_recent, by_most_scrolled, by_followers, mp4=is_mp4)
+
+
+@api_view(['GET'])
+def saved_auto_recording(request):
+    user_id = int(request.query_params['id'])
+    return auto_recording.get_saved_auto_recording(request, user_id)
 
 @api_view(['POST'])
 def video_upload(request):
@@ -189,6 +223,11 @@ def report_scrolls(request):
 def report_remix(request):
     remix_id = int(request.query_params['id'])
     return reports.raise_remix_report(request, remix_id)
+
+@api_view(['POST'])
+def report_user(request):
+    user_id = int(request.query_params['id'])
+    return reports.raise_user_report(request, user_id)
 
 
 # DEPRICATED APIS
