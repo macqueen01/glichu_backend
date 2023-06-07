@@ -139,6 +139,23 @@ def logout_user(request):
             return Response({"message": "Token removal error"},
                 status = status.HTTP_404_NOT_FOUND)
         
+
+def delete_user(request):
+    user = authenticate_then_user_or_unauthorized_error(request)
+
+    if user is None:
+        return Response({'message': 'user is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if request.method != 'POST':
+        return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    try:
+        user.delete()
+        return Response({'message': 'user is deleted'}, status=status.HTTP_200_OK)
+    except:
+        return Response({'message': 'user is not deleted'}, status=status.HTTP_404_NOT_FOUND)
+
+        
 def login_user_with_token(request):
     if request.method == 'POST':
         try:

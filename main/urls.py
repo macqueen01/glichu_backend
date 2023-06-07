@@ -47,6 +47,7 @@ urlpatterns = [
     path('auth/login', user_login),
     path('auth/join', user_join),
     path('auth/logout', user_logout),
+    path('auth/delete', user_delete),
 
     # user
     path('user/', get_user),
