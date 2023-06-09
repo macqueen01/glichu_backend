@@ -213,13 +213,13 @@ def get_auto_recording_from_scrolls(request,
 
 
         if by_most_scrolled:
-            browse_cases.order_by('task_queue_json')
+            browse_cases = browse_cases.order_by('task_queue_json')
         
         if by_recent:
-            browse_cases.order_by('-created_at')
+            browse_cases = browse_cases.order_by('-created_at')
 
         if by_followers:
-            browse_cases.filter(user__in = user.followers.all(), user__in = user.followings.all()).order_by('-created_at')
+            browse_cases = browse_cases.filter(user__in = user.followers.all()).order_by('-created_at')
 
 
         paginator = PageNumberPagination()

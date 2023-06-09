@@ -78,7 +78,7 @@ def get_followers(request, user_id):
         return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
     
     try:
-        followers = User.objects.get_followers(user_id).order_by('username')
+        followers = User.objects.get_followers(user_id).exclude(id=user.id).order_by('username')
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(followers, request)
@@ -94,7 +94,7 @@ def get_followings(request, user_id):
         return Response({'message': 'wrong method call'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
     
     try:
-        followings = User.objects.get_followings(user_id).order_by('username')
+        followings = User.objects.get_followings(user_id).exclude(id=user.id).order_by('username')
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(followings, request)
