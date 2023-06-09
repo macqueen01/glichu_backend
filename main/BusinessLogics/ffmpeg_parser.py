@@ -7,13 +7,13 @@ import subprocess
 # (process, (out, err))
 
 
-def codec_converter(input_path, output_path):
+def codec_converter(input_path, output_path, test = True):
 
     """
     Codec conversion
     """
 
-    args = [
+    args1 = [
         'ffmpeg',
         '-i',
         f'{input_path}',
@@ -27,6 +27,29 @@ def codec_converter(input_path, output_path):
         """scale='min(370, iw):-1'""",
         f'{output_path}'
     ]
+
+    """
+    Test Codec conversion
+    """
+
+    args2 = [
+        'ffmpeg',
+        '-i',
+        f'{input_path}',
+        '-c:v', 'libx264',  # Video codec
+        '-crf', '23',       # Constant Rate Factor (lower values result in higher quality)
+        '-preset', 'ultrafast', # Preset for encoding speed and efficiency (e.g., ultrafast, veryslow)
+        '-vf', 'scale=740:-2',  # Video resolution (e.g., width: 1280, height: maintain aspect ratio)
+        '-c:a', 'aac',      # Audio codec
+        '-b:a', '192k',     # Audio bitrate
+        '-vf', 'setsar=1',  # Sample aspect ratio
+        f'{output_path}'
+    ]
+
+    if test:
+        args = args2
+    else:
+        args = args1
 
     process = subprocess.Popen(
         args,

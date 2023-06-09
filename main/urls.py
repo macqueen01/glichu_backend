@@ -27,6 +27,8 @@ urlpatterns = [
     path('upload/video', video_upload),
     path('upload/scrollify', scrollify_video_depricated),
     path('upload/post', scrolls_upload),
+    path('delete', delete_scrolls),
+
 
     # auto recordings
     path('auto-recording/upload', auto_recording_upload),

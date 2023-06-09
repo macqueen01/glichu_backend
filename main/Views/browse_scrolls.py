@@ -115,13 +115,18 @@ def get_saved_scrolls_of_user(request, user_id):
         paginator = PageNumberPagination()
         paginator.page_size = 1000
         result_page = paginator.paginate_queryset(scrolls, request)
-        serializer = ScrollsSerializerGeneralUse(result_page, many=True)
+        serializer = ScrollsSerializerGeneralUse(result_page, many=True, context={'user': user})
         return paginator.get_paginated_response(serializer.data)
     except:
         return Response({'message': 'argument missing'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 def get_scrolls_by_user(request, user_id):
+    self = authenticate_then_user_or_unauthorized_error(request)
+
+    if self is None:
+        return Response({'message': 'user is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+
     if (request.method != 'GET'):
         return Response({'message': 'wrong method call'},
             status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -137,7 +142,7 @@ def get_scrolls_by_user(request, user_id):
         paginator = PageNumberPagination()
         paginator.page_size = 1000
         result_page = paginator.paginate_queryset(scrolls, request)
-        serializer = ScrollsSerializerGeneralUse(result_page, many=True)
+        serializer = ScrollsSerializerGeneralUse(result_page, many=True, context={'user': self})
         return paginator.get_paginated_response(serializer.data)
     except:
         return Response({'message': 'argument missing'}, status=status.HTTP_400_BAD_REQUEST)

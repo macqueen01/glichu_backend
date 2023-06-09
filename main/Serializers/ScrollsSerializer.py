@@ -115,6 +115,7 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
     video_url = serializers.CharField(max_length=400)
     created_by = UserSerializerForScrolls()
     num_remix = serializers.SerializerMethodField()
+    is_self = serializers.SerializerMethodField()
 
     def get_num_remix(self, instance):
         return instance.remix_set.count()
@@ -124,6 +125,11 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
         if thumbnail := media.thumbnail:
             return thumbnail.url.split('?')[0]
         return f'{instance.scrolls_dir}/1.jpeg'
+    
+    def get_is_self(self, instance):
+        if instance.created_by.id == self.context['user'].id:
+            return 1
+        return 0
 
     class Meta:
         model = Scrolls
@@ -137,7 +143,8 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
             'created_at',
             'video_url',
             'scrolled',
-            'num_remix'
+            'num_remix',
+            'is_self'
         )
     
 

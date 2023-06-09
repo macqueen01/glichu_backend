@@ -209,15 +209,17 @@ def get_auto_recording_from_scrolls(request,
             browse_cases = Remix.objects.filter(scrolls__pk = scrolls.id)
             serializer = RemixViewSerializerWithRawJson
 
+        
+
 
         if by_most_scrolled:
             browse_cases.order_by('task_queue_json')
         
         if by_recent:
-            browse_cases.order_by('created_at')
+            browse_cases.order_by('-created_at')
 
         if by_followers:
-            browse_cases.filter(user__in = scrolls.created_by.followers.all()).order_by('created_at')
+            browse_cases.filter(user__in = user.followers.all(), user__in = user.followings.all()).order_by('-created_at')
 
 
         paginator = PageNumberPagination()

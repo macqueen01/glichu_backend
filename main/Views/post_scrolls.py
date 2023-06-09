@@ -112,7 +112,10 @@ def scrolls_upload_without_scrollify(request):
                 status=status.HTTP_404_NOT_FOUND)
         
         if scrolls := VideoMedia.objects.mp4_to_scrolls_without_scrollify(media_id=media_id, scrolls_id=scrolls_object.id):
-            notify.send(sender=User.objects.get(id=scrolls_object.user_id), recipient=User.objects.get(id=scrolls_object.user_id).followers, verb='has uploaded new scrolls', action_object=scrolls)
+            try:
+                notify.send(sender=User.objects.get(id=scrolls_object.user_id), recipient=User.objects.get(id=scrolls_object.user_id).followers, verb='has uploaded new scrolls', action_object=scrolls)
+            except:
+                pass
             return Response({'message': 'scrolls uploaded successfully', 'scrolls_id': scrolls.id},
                 status=status.HTTP_200_OK)
 
@@ -202,3 +205,27 @@ def upload_scrolls(request):
     except:
         return Response({'message': 'argument missing'}, 
             status=status.HTTP_400_BAD_REQUEST)
+
+
+# Delete actions
+
+def delete_scrolls(request, scrolls_id):
+    user = authenticate_then_user_or_unauthorized_error(request)
+    scrolls = Scrolls.objects.get(id=scrolls_id)
+
+    if not user:
+        return Response({'message': 'user not found'}, 
+            status=status.HTTP_404_NOT_FOUND)
+    
+    if not scrolls:
+        return Response({'message': 'scrolls not found'}, 
+            status=status.HTTP_404_NOT_FOUND)
+    
+    if scrolls.created_by.id != user.id:
+        return Response({'message': 'unauthorized'}, 
+            status=status.HTTP_401_UNAUTHORIZED)
+    
+    scrolls.delete()
+
+    return Response({'message': 'scrolls deleted successfully'},
+        status=status.HTTP_200_OK)

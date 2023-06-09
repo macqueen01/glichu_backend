@@ -39,6 +39,10 @@ def saved_scrolls_of_user(request):
     user_id = int(request.query_params['id'])
     return browse_scrolls.get_saved_scrolls_of_user(request, user_id)
 
+@api_view(['POST'])
+def delete_scrolls(request):
+    scrolls_id = int(request.query_params['id'])
+    return post_scrolls.delete_scrolls(request, scrolls_id)
 
 @api_view(['GET'])
 def does_user_like_auto_recording(request):
