@@ -48,8 +48,14 @@ def get_personalized_scrolls_feed(request):
             if recommended_user not in follow_and_following_creator_list:
                 follow_and_following_creator_list.append(recommended_user)
 
+        # append user himself
+        follow_and_following_creator_list.append(user.id)
 
-        scrolls = Scrolls.objects.filter(created_by__pk__in=follow_and_following_creator_list).order_by('-created_at')
+        # get reported scrolls by user
+        reported_scrolls_list = [scrolls.id for scrolls in user.reported_scrolls.all()]
+
+
+        scrolls = Scrolls.objects.filter(created_by__pk__in=follow_and_following_creator_list).exclude(id__in = reported_scrolls_list).order_by('-created_at')
 
         serializer = ScrollsSerializerGeneralUse
 
