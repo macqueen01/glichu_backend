@@ -146,7 +146,10 @@ def convert(input, output, media_id):
     process, (_, _) = ffmpeg_parser.codec_converter(input, output)
 
     if process.returncode != 0:
-        shutil.rmtree(output)
+        try:
+            shutil.rmtree(output)
+        except:
+            pass
         return False
 
     if media_id:

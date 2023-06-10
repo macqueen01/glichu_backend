@@ -23,10 +23,10 @@ def codec_converter(input_path, output_path, test = True):
         'aac',
         '-vf',
         'setsar=1',
+        '-vf', 
+        """scale='min(500, iw):-1'""",
         '-vf',
-        '-r',
-        '18', 
-        """scale='min(450, iw):-1'""",
+        'fps=18',
         f'{output_path}'
     ]
 
