@@ -204,7 +204,7 @@ def _apple_social_authenticate_then_return_user_id(request):
     client_secret = jwt.encode(payload=payload, key=private_key, algorithm='ES256', headers=headers)
 
     # Send a request to Apple's token endpoint to exchange the authentication code for tokens
-    apple_token_url = 'https://appleid.apple.com/auth/token'
+    apple_token_url = 'https://appleid.apple.com/auth/token?scope=name%20email'
     data = {
         'client_id': client_id,
         'client_secret': client_secret,
@@ -218,14 +218,15 @@ def _apple_social_authenticate_then_return_user_id(request):
 
     # Extract the access token and verify the identity token
     fetched_id_token = response.json().get('id_token')
-    fetched_user_identifier = jwt.decode(fetched_id_token, options={'verify_signature': False}).get('sub')
-
+    decoded_token = jwt.decode(fetched_id_token, options={'verify_signature': False})
+    fetched_user_identifier = decoded_token.get('sub')
+    email = decoded_token.get('email')
     # Check if the user identifier matches the Apple user ID
     if user_identifier != fetched_user_identifier:
         return False
 
 
-    return user_identifier
+    return user_identifier, email
 
 def login_user(request):
     if request.method == 'POST':
@@ -251,7 +252,7 @@ def login_user(request):
 
             elif social_login_type == 'apple':
                 # TODO: need to implement social login case for apple
-                user_id = _apple_social_authenticate_then_return_user_id(request)
+                user_id, email = _apple_social_authenticate_then_return_user_id(request)
 
                 if not user_id:
                     return Response({'message': 'invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -260,6 +261,10 @@ def login_user(request):
                     return Response({'message': 'user is not registered'}, status=status.HTTP_404_NOT_FOUND)
                 
                 user = User.objects.get(apple_id=user_id)
+
+                if not user.email:
+                    user.email = email
+                    user.save()
             
             else:
                 return Response({'message': "wrong social login type"}, status = status.HTTP_400_BAD_REQUEST)
@@ -313,7 +318,7 @@ def create_user(request):
 
             elif social_login_type == 'apple':
                 # TODO: need to implement social login case for apple
-                user_id = _apple_social_authenticate_then_return_user_id(request)
+                user_id, email = _apple_social_authenticate_then_return_user_id(request)
 
                 if not user_id:
                     return Response({'message': 'invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -322,8 +327,9 @@ def create_user(request):
                     return Response({'message': 'duplicate user'}, status=status.HTTP_406_NOT_ACCEPTABLE)
                 
                 user = User.objects.create_user_with_apple_id(username, user_id)
-                print(user.apple_id)
-            
+                user.email = email
+                user.save()
+
             else:
                 return Response({'message': "wrong social login type"}, status = status.HTTP_400_BAD_REQUEST)
 

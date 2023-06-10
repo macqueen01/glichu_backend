@@ -177,6 +177,10 @@ class User(AbstractBaseUser):
     apple_id = models.CharField(max_length = 120, blank = True, null = True, unique=True)
     apple_username = models.CharField(max_length = 120, blank = True, null = True)
 
+
+    email = models.CharField(max_length = 120, blank = True, null = True)
+    
+
     profile_image = models.ImageField(storage = settings.s3_storage, upload_to = 'profile_image', blank = True, null = True, default='profile_image/default.png')
 
     followers = models.ManyToManyField('self', symmetrical = False, related_name = 'followings')
