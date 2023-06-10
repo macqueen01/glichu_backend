@@ -10,11 +10,8 @@ from main.models import Scrolls, User, Recommendation
 from main.serializer import *
 
 
-
 def get_personalized_scrolls_feed(request):
     user = authenticate_then_user_or_unauthorized_error(request)
-    print(user)
-
     page = 1
 
     if user is None:
@@ -24,12 +21,35 @@ def get_personalized_scrolls_feed(request):
         page = request.data['page']
     except:
         page = 1
-    
-    recommendation_list = scrolls_recommendation_list_api_fetch(user.id, page)
+
+    # recommendation_list = scrolls_recommendation_list_api_fetch(user.id, page)
 
     if (request.method == 'GET'):
 
-        scrolls = Scrolls.objects.filter(id__in=recommendation_list).all()
+        # scrolls = Scrolls.objects.filter(id__in=recommendation_list).order_by('-created_at')
+
+        followers = user.followers.all()
+        followings = user.followings.all()
+
+        follow_and_following_creator_list = [
+            recommended_user.id for recommended_user in followers.union(followings)
+        ]
+
+        # This recommends user the scrolls of following's following
+
+        followings_followers_creator_list = []
+
+        for following in followings:
+            for followings_following in following.followings.all():
+                followings_followers_creator_list.append(followings_following.id)
+
+        
+        for recommended_user in follow_and_following_creator_list:
+            if recommended_user not in follow_and_following_creator_list:
+                follow_and_following_creator_list.append(recommended_user)
+
+
+        scrolls = Scrolls.objects.filter(created_by__pk__in=follow_and_following_creator_list).order_by('-created_at')
 
         serializer = ScrollsSerializerGeneralUse
 
@@ -41,6 +61,7 @@ def get_personalized_scrolls_feed(request):
     
     return Response({'message': "wrong method call"}, 
         status = status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 
 def scrolls_with_given_id(request, id):
