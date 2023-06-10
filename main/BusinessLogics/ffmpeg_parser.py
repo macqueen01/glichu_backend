@@ -24,7 +24,9 @@ def codec_converter(input_path, output_path, test = True):
         '-vf',
         'setsar=1',
         '-vf',
-        """scale='min(600, iw):-1'""",
+        '-r',
+        '18', 
+        """scale='min(450, iw):-1'""",
         f'{output_path}'
     ]
 

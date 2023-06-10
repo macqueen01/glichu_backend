@@ -277,3 +277,4 @@ CHANNEL_LAYERS = {
 
 ASGI_APPLICATION = 'mockingJae_back.asgi.application'
 
+
