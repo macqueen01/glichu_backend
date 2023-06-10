@@ -3,6 +3,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import status, exceptions
 from rest_framework.pagination import PageNumberPagination
+from main.BusinessLogics.recommendation_fetch import scrolls_recommendation_list_api_fetch
 from main.Views.authentications import authenticate_then_user_or_unauthorized_error
 
 from main.models import Scrolls, User, Recommendation
@@ -12,13 +13,23 @@ from main.serializer import *
 
 def get_personalized_scrolls_feed(request):
     user = authenticate_then_user_or_unauthorized_error(request)
+    print(user)
+
+    page = 1
 
     if user is None:
         return Response({'message': 'user is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try: 
+        page = request.data['page']
+    except:
+        page = 1
+    
+    recommendation_list = scrolls_recommendation_list_api_fetch(user.id, page)
 
     if (request.method == 'GET'):
 
-        scrolls = Scrolls.objects.all().order_by('-created_at')
+        scrolls = Scrolls.objects.filter(id__in=recommendation_list).all()
 
         serializer = ScrollsSerializerGeneralUse
 

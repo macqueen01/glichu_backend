@@ -127,6 +127,7 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
         return f'{instance.scrolls_dir}/1.jpeg'
     
     def get_is_self(self, instance):
+        print(instance)
         if instance.created_by.id == self.context['user'].id:
             return 1
         return 0
