@@ -12,10 +12,9 @@ from knox.settings import CONSTANTS
 
 from rest_framework.response import Response
 from rest_framework import status, exceptions
-from main.Models.Statistics import DailyVisit
 from main.Views.authentications import authenticate_then_user_or_unauthorized_error, get_user_from_token
 
-from main.models import Scrolls, User, Recommendation
+from main.models import Scrolls, User, Recommendation, DailyVisit
 from main.serializer import *
 
 
@@ -166,8 +165,8 @@ def login_user_with_token(request):
                 return Response({"message": "Token is invalid"},
                     status = status.HTTP_404_NOT_FOUND)
             else:
-                user = UserSerializerForScrolls(user)
                 DailyVisit.objects.create_daily_visit(user)
+                user = UserSerializerForScrolls(user)
                 return Response(user.data,
                     status = status.HTTP_200_OK)
         except:

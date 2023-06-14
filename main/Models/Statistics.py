@@ -21,7 +21,7 @@ from django.core.files.storage import FileSystemStorage
 
 class DailyVisitManager(models.Manager):
     def create_daily_visit(self, user):
-        daily_visit = self.create(user=user)
+        daily_visit = self.create(user=user, date=timezone.now())
         daily_visit.save()
         return daily_visit
 
@@ -59,7 +59,7 @@ class DailyVisitManager(models.Manager):
     
 
 class DailyVisit(models.Model):
-    date = models.DateField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     objects = DailyVisitManager()
