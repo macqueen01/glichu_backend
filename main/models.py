@@ -4,6 +4,7 @@ from .Models.RecommendationModel import *
 from .Models.TaskModel import *
 from .Models.RemixModel import *
 from .Models.Message import *
+from .Models.Statistics import *
 
 
 
