@@ -58,7 +58,8 @@ class UserSerializerForRemix(serializers.ModelSerializer):
             "username",
             "profile_image",
             "tagged_by",
-            "is_tagged"
+            "is_tagged",
+            "influencer"
         )
 
 class UserSerializerForScrolls(serializers.ModelSerializer):
@@ -87,7 +88,8 @@ class UserSerializerForScrolls(serializers.ModelSerializer):
             "username",
             "profile_image",
             "tagged_by",
-            "is_tagged"
+            "is_tagged",
+            "influencer"
         )
 
 class UserSerializerGeneralUse(serializers.ModelSerializer):
@@ -116,7 +118,8 @@ class UserSerializerGeneralUse(serializers.ModelSerializer):
             "username",
             "profile_image",
             "tagged_by",
-            "is_tagged"
+            "is_tagged",
+            "influencer"
         )
 
 class UserSerializerWithFollowingRelations(serializers.ModelSerializer):
@@ -157,7 +160,8 @@ class UserSerializerWithFollowingRelations(serializers.ModelSerializer):
             "is_followed_by_user",
             "is_following_user",
             "tagged_by",
-            "is_tagged"
+            "is_tagged",
+            "influencer"
         )
 
 
@@ -250,7 +254,8 @@ class UserSerializerWithDetail(serializers.ModelSerializer):
             "tagged_by",
             "is_tagged",
             "invited_by",
-            "invited_at"
+            "invited_at",
+            "influencer"
         )
 
 
@@ -310,7 +315,8 @@ class UserSerializerForSelfProfile(serializers.ModelSerializer):
             "num_scrolls_scrolled",
             "num_remix_produced",
             "tagged_by",
-            "is_tagged"
+            "is_tagged",
+            "influencer"
         )
     
 

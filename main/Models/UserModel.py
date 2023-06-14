@@ -179,7 +179,7 @@ class User(AbstractBaseUser):
 
 
     email = models.CharField(max_length = 120, blank = True, null = True)
-    
+
 
     profile_image = models.ImageField(storage = settings.s3_storage, upload_to = 'profile_image', blank = True, null = True, default='profile_image/default.png')
 
@@ -190,6 +190,7 @@ class User(AbstractBaseUser):
     is_invited = models.IntegerField(blank = True, null = True, default=0)
     invited_at = models.DateTimeField(blank = True, null = True)
 
+    influencer = models.IntegerField(blank = True, null = True, default=0)
 
     reported_by = models.ManyToManyField('self', symmetrical = False, related_name = 'reported')
     

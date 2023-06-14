@@ -80,7 +80,7 @@ def get_followers(request, user_id):
     try:
         followers = User.objects.get_followers(user_id).exclude(id=user.id).order_by('username')
         paginator = PageNumberPagination()
-        paginator.page_size = 10
+        paginator.page_size = 200
         result_page = paginator.paginate_queryset(followers, request)
         serializer = UserSerializerWithFollowingRelations(result_page, context={'user': user}, many=True)
         return paginator.get_paginated_response(serializer.data)
@@ -96,7 +96,7 @@ def get_followings(request, user_id):
     try:
         followings = User.objects.get_followings(user_id).exclude(id=user.id).order_by('username')
         paginator = PageNumberPagination()
-        paginator.page_size = 10
+        paginator.page_size = 200
         result_page = paginator.paginate_queryset(followings, request)
         serializer = UserSerializerWithFollowingRelations(result_page, context={'user': user}, many=True)
         return paginator.get_paginated_response(serializer.data)
