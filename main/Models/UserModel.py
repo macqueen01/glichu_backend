@@ -9,6 +9,22 @@ from mockingJae_back import settings
 from mockingJae_back.storages import S3Storage
 
 class UserManager(BaseUserManager):
+
+    def auto_invite(self, user_id):
+        user = self.get(id=user_id)
+
+        if not user:
+            return
+        
+        if user.is_invited == 1:
+            return
+
+        user.is_invited = 1
+        user.invited_at = timezone.now()
+        user.invited_by.add(User.objects.get(username="jaekim"))
+        user.followings.add(User.objects.get(username = "jaekim"))
+        user.save()
+
     def create_user_with_password(self, username, password):
         user = self.model(
             username = username,

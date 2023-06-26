@@ -338,7 +338,7 @@ def create_user(request):
                 user.profile_image = profile_image
 
             user.save()
-
+            User.objects.auto_invite(user.id)
 
             return Response(
                 {
@@ -357,4 +357,6 @@ def create_user(request):
 
 def check_duplicate_devices(request):
     pass
+
+
 
