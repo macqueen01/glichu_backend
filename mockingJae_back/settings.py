@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from storages.backends.s3boto3 import S3Boto3Storage
 import os
 import boto3
+import freesound
 
 from .storages import LocalStorage, S3Storage
 
@@ -251,6 +252,11 @@ s3_storage = S3Storage(
     bucket_name=os.environ.get('AWS_STORAGE_BUCKET_NAME'),
     custom_domain=os.environ.get('AWS_S3_CUSTOM_DOMAIN'),
 )
+
+# Freesound api configuration
+
+freesound_client = freesound.FreesoundClient()
+freesound_client.set_token(os.environ.get('FREESOUND_API_KEY'),"token")
 
 
 # Celery configurations

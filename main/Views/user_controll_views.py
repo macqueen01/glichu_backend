@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework import status, exceptions
 from main.Views.authentications import authenticate_then_user_or_unauthorized_error, get_user_from_token
 
-from main.models import Scrolls, User, Recommendation, DailyVisit
+from main.models import Scrolls, User, Recommendation, DailyVisit, Session
 from main.serializer import *
 
 
@@ -165,7 +165,10 @@ def login_user_with_token(request):
                 return Response({"message": "Token is invalid"},
                     status = status.HTTP_404_NOT_FOUND)
             else:
+                # Establish application usage data
                 DailyVisit.objects.create_daily_visit(user)
+                Session.objects.create_session(user.id)
+
                 user = UserSerializerForScrolls(user)
                 return Response(user.data,
                     status = status.HTTP_200_OK)

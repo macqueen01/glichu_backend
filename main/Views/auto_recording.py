@@ -272,11 +272,14 @@ def upload_auto_recording_as_raw_text(request):
             Scrolls.objects.increase_scrolled(scrolls.id)
             new_remix.save()
 
+            # Establish notification
             try:
                 notify.send(sender=user, recipient=scrolls.created_by, verb='has scrolled your post', action_object=new_remix)
             except Exception as e:
                 print(e)
 
+            # Establish usage data
+            session = Session.objects.session_update_from_remix(user_id=user.id, remix_id=new_remix.id)
                 
             return Response({'message': 'remix upload as raw json successfull'},
                 status=status.HTTP_200_OK)

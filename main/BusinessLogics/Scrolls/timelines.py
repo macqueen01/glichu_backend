@@ -21,12 +21,20 @@ class TimelineStamp:
 class IndexTimeline:
 
     def __init__(self, timeline_json, length):
+        self.last = None
         self.sentinel = self._parse_timeline_from_json(timeline_json)
+        print(self.last)
         self.length = length
+
+    def get_duration(self):
+        time_delta = self.last.datetime - self.sentinel.datetime
+        return time_delta.total_seconds()
+    
     
     def _parse_timeline_from_json(self, timeline_json):
         if timeline_json == 'null' or timeline_json == None:
             return None
+        
 
         if timeline_json['next'] == 'null':
             timestamp = TimelineStamp(
@@ -41,6 +49,7 @@ class IndexTimeline:
                 timeline_json['time'], '%Y-%m-%d %H:%M:%S.%f'),
             timeline_json['index']
             )
+        self.last = current_stamp
         
         current_stamp.set_next(self._parse_timeline_from_json(timeline_json['next']))
 
