@@ -33,7 +33,6 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         user = await authenticate_then_user_or_none_for_websocket(self.scope)
         
-        print(user)
 
         if not user:
             self.close()
@@ -54,7 +53,6 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         # Unsubscribe the user from their own channel
 
-        print(close_code)
 
         user = await authenticate_then_user_or_none_for_websocket(self.scope)
         

@@ -230,8 +230,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # IPFS_STORAGE_GATEWAY_URL = 'https://ipfs.io/ipfs/'
 
 
-
 # Create an S3 client instance
+s3_main_bucket = os.environ.get("AWS_STORAGE_BUCKET_NAME")
+
 s3_client = boto3.client(
     's3',
     aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),

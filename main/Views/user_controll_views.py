@@ -30,7 +30,6 @@ def is_duplicate_user(request):
         user = User.objects.filter(username=username)
 
         if (user.exists()):
-            print('here')
             return Response({
                 'message': f'user with id {username} is already occupied',
                 'exists': 1

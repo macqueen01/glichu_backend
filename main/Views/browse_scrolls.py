@@ -44,8 +44,6 @@ def get_personalized_scrolls_feed(request):
             for followings_following in following.followings.all():
                 followings_followers_creator_list.append(followings_following.id)
 
-
-        
         for recommended_user in followings_followers_creator_list:
             if recommended_user not in follow_and_following_creator_list:
                 follow_and_following_creator_list.append(recommended_user)

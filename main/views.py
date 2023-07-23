@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 
 from main.Views import browse_scrolls, post_scrolls, \
-    auto_recording, user_controll_views, social_activities, tag_interactions, reports
+    auto_recording, user_controll_views, social_activities, tag_interactions, sounds, reports
 
 @api_view(['GET'])
 def scrolls_browse(request):
@@ -211,6 +211,16 @@ def tag_user(request):
     inviter_id = int(request.query_params['id'])
     return tag_interactions.accept_invitation(request, inviter_id)
 
+# Sound interactions
+
+@api_view(['GET'])
+def get_freesound_sounds(request):
+    if not (request.query_params.keys().__contains__('page')):
+        page = 1
+    else:
+        page = int(request.query_params['page'])
+    return sounds.get_freesound_sounds(request, page)
+
 
 # Reports
 
@@ -236,6 +246,21 @@ def report_remix(request):
 def report_user(request):
     user_id = int(request.query_params['id'])
     return reports.raise_user_report(request, user_id)
+
+# Sounds
+@api_view(['GET'])
+def get_sounds(request):
+    try:
+        page = int(request.query_params['page'])
+    except:
+        page = 1
+
+    try:
+        query = request.query_params['query']
+    except:
+        query = ''
+        
+    return sounds.get_freesound_sounds(request, page, query)
 
 
 # DEPRICATED APIS

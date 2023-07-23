@@ -26,7 +26,7 @@ def codec_converter(input_path, output_path, test = True):
         '-vf', 
         """scale='min(500, iw):-1'""",
         '-vf',
-        'fps=18',
+        'fps=20',
         f'{output_path}'
     ]
 
@@ -94,7 +94,6 @@ def execute_from_txt_file(txt_file_path, output_dir, filename):
     if output_dir[-1] == '/':
         output_dir = output_dir[:-1]
 
-    print(f'{output_dir}/{filename}')
 
     
     args = [

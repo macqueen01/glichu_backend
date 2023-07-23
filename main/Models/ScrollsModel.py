@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.conf import settings
 
 from main.utils import create_tar_archive_with_parent_basename
+# models to import 
 from .UserModel import User
 from .TaskModel import Task
 
@@ -237,6 +238,7 @@ class ScrollsManager(models.Manager):
             original=media,
             height=kwargs['height']
         )
+
         new_scrolls.save()
 
         return new_scrolls
@@ -422,10 +424,6 @@ class ScrollsManager(models.Manager):
         return f"https://{s3_storage.bucket_name}.s3.amazonaws.com/raw-scrolls/{dir_name}"
 
 
-            
-
-
-
     def parsed_scrolls_name(self, scrolls_id):
         # returns a name that can be used for uploading scrolls to s3
         scrolls = self.get_scrolls_from_id(scrolls_id)
@@ -480,8 +478,6 @@ class ScrollsManager(models.Manager):
         scrolls.save()
 
         return True
-
-
 
     """
     
@@ -642,6 +638,7 @@ class Scrolls(models.Model):
         to=VideoMedia, on_delete=models.SET_NULL, default=None, null=True)
     tags = models.ManyToManyField(to=Tag, related_name="mentioned_in")
     uploaded = models.IntegerField(default=1)
+    
     # Hash of ipfs if uploaded as a folder
     # This could be empty if scrolls is uploaded as a cell
     ipfs_hash = models.CharField(max_length=100, default="")
@@ -663,6 +660,36 @@ class Scrolls(models.Model):
     audios = models.ManyToManyField(to=AudioModel, related_name="used_in", null = True)
 
     objects = ScrollsManager()
+
+    def has_background(self):
+        if self.background():
+            return True
+        return False
+    
+    def has_events(self):
+        if self.events():
+            return True
+        return False
+    
+    def has_sound_joint(self):
+        if self.sound_joints:
+            return True
+        return False
+    
+    def get_sound_joint(self):
+        if self.has_sound_joint():
+            return self.sound_joints.first()
+        return None
+    
+    def events(self):
+        if (not self.sound_joints) or (not self.sound_joints.first()):
+            return None
+        return self.sound_joints.first().get_event_sounds()
+    
+    def background(self):
+        if (not self.sound_joints) or (not self.sound_joints.first()):
+            return None
+        return self.sound_joints.first().get_background_sound()
 
     def __str__(self):
         return self.title

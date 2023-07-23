@@ -94,6 +94,11 @@ def scrolls_upload_without_scrollify(request):
         task_id = request.data['task_id']
         title = request.data['title']
         height = request.data['height']
+        
+        # Sound support 
+        background = int(request.data['background']) if request.data.__contains__('background') else None
+        events = json.loads(request.data['events']) if request.data.__contains__('events') else []
+
         media_id = tasks.get_result_from_task_id(task_id)
 
         if tasks.task_status(task_id) in [3,4]:
@@ -116,6 +121,16 @@ def scrolls_upload_without_scrollify(request):
                 notify.send(sender=User.objects.get(id=scrolls_object.user_id), recipient=User.objects.get(id=scrolls_object.user_id).followers, verb='has uploaded new scrolls', action_object=scrolls)
             except:
                 pass
+
+            # Add sounds to the scrolls if exists
+            sound_joint = SoundScrollsJoint.objects.create_joint(scrolls.id)
+            
+            if background:
+                SoundScrollsJoint.objects.add_background_sound(sound_joint.id, background)
+            
+            for event in events:
+                SoundScrollsJoint.objects.add_event(sound_joint.id, event['id'], event['index'])
+
             return Response({'message': 'scrolls uploaded successfully', 'scrolls_id': scrolls.id},
                 status=status.HTTP_200_OK)
 

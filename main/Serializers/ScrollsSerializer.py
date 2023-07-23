@@ -1,6 +1,9 @@
 from rest_framework import serializers
+
 from ..models import *
+
 from .UserSerializer import UserSerializer, UserSerializerForScrolls
+from .SoundSerializer import EventSerializer, SoundSerializerForSearchView
 
 class MediaSerializer(serializers.ModelSerializer):
     url_preprocess = serializers.FileField()
@@ -117,6 +120,10 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
     num_remix = serializers.SerializerMethodField()
     is_self = serializers.SerializerMethodField()
 
+    # Sound supports
+    background = serializers.SerializerMethodField()
+    events = serializers.SerializerMethodField()
+
     def get_num_remix(self, instance):
         return instance.remix_set.count()
 
@@ -127,10 +134,19 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
         return f'{instance.scrolls_dir}/1.jpeg'
     
     def get_is_self(self, instance):
-        print(instance)
         if instance.created_by.id == self.context['user'].id:
             return 1
         return 0
+    
+    def get_background(self, instance):
+        if not instance.has_background():
+            return None
+        return SoundSerializerForSearchView(instance.background()).data
+    
+    def get_events(self, instance):
+        if not instance.has_events():
+            return []
+        return EventSerializer(instance.events(), many=True).data
 
     class Meta:
         model = Scrolls
@@ -145,7 +161,9 @@ class ScrollsSerializerGeneralUse(serializers.ModelSerializer):
             'video_url',
             'scrolled',
             'num_remix',
-            'is_self'
+            'is_self',
+            'background',
+            'events'
         )
     
 

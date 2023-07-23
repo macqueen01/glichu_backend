@@ -23,7 +23,6 @@ class IndexTimeline:
     def __init__(self, timeline_json, length):
         self.last = None
         self.sentinel = self._parse_timeline_from_json(timeline_json)
-        print(self.last)
         self.length = length
 
     def get_duration(self):

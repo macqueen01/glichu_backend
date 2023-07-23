@@ -70,6 +70,9 @@ urlpatterns = [
     path('tag/has-tagged', has_tagged),
     path('tag/', tag_user),
 
+    # sound
+    path('sound/freesound', get_freesound_sounds),
+
 
     # Reports
 
